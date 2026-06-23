@@ -33,10 +33,7 @@ export async function GET(request: NextRequest) {
         data = await buscarContratacoesComPropostaAberta(dataFinal || dataInicial, params)
         break
       case "atualizacao":
-        data = await buscarContratacoesPorAtualizacao({
-          ...params,
-          codigoModalidadeContratacao: params.codigoModalidadeContratacao ?? -1,
-        })
+        data = await buscarContratacoesPorAtualizacao(params)
         break
       case "detalhe": {
         const cnpj = searchParams.get("cnpj") ?? ""
@@ -52,10 +49,7 @@ export async function GET(request: NextRequest) {
         break
       }
       default:
-        data = await buscarContratacoesPorPublicacao({
-          ...params,
-          codigoModalidadeContratacao: params.codigoModalidadeContratacao ?? -1,
-        })
+        data = await buscarContratacoesPorPublicacao(params)
     }
 
     return NextResponse.json(data)

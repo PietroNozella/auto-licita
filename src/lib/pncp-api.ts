@@ -29,7 +29,7 @@ export async function buscarContratacoesPorPublicacao(
   return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/publicacao", {
     dataInicial: params.dataInicial,
     dataFinal: params.dataFinal,
-    codigoModalidadeContratacao: params.codigoModalidadeContratacao ?? -1,
+    codigoModalidadeContratacao: params.codigoModalidadeContratacao,
     codigoModoDisputa: params.codigoModoDisputa,
     uf: params.uf,
     codigoMunicipioIbge: params.codigoMunicipioIbge,
@@ -61,7 +61,7 @@ export async function buscarContratacoesPorAtualizacao(
   return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/atualizacao", {
     dataInicial: params.dataInicial,
     dataFinal: params.dataFinal,
-    codigoModalidadeContratacao: params.codigoModalidadeContratacao ?? -1,
+    codigoModalidadeContratacao: params.codigoModalidadeContratacao,
     codigoModoDisputa: params.codigoModoDisputa,
     uf: params.uf,
     codigoMunicipioIbge: params.codigoMunicipioIbge,

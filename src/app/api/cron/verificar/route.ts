@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       const response = await buscarContratacoesPorPublicacao({
         dataInicial,
         dataFinal,
-        codigoModalidadeContratacao: monitor.modalidade_id ?? -1,
+        codigoModalidadeContratacao: monitor.modalidade_id,
         uf: monitor.uf ?? undefined,
         cnpj: monitor.cnpj_orgao ?? undefined,
         pagina: 1,
