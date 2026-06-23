@@ -17,8 +17,12 @@ async function fetchFromPncp<T>(path: string, params: Record<string, string | nu
   const res = await fetch(url, {
     next: { revalidate: 300 },
   })
+  if (res.status === 204) {
+    return { data: [], totalRegistros: 0, totalPaginas: 0, numeroPagina: 1, paginasRestantes: 0, empty: true } as unknown as T
+  }
   if (!res.ok) {
-    throw new Error(`Erro na PNCP API: ${res.status} ${res.statusText} - ${await res.text()}`)
+    const text = await res.text()
+    throw new Error(`Erro na PNCP API: ${res.status} - ${text || res.statusText}`)
   }
   return res.json()
 }
