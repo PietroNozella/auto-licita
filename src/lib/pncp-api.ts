@@ -26,18 +26,57 @@ async function fetchFromPncp<T>(path: string, params: Record<string, string | nu
 export async function buscarContratacoesPorPublicacao(
   params: PncpSearchParams
 ): Promise<PaginaRetornoRecuperarCompraPublicacaoDTO> {
-  return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/publicacao", {
-    dataInicial: params.dataInicial,
-    dataFinal: params.dataFinal,
-    codigoModalidadeContratacao: params.codigoModalidadeContratacao,
-    codigoModoDisputa: params.codigoModoDisputa,
-    uf: params.uf,
-    codigoMunicipioIbge: params.codigoMunicipioIbge,
-    cnpj: params.cnpj,
-    codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
-    pagina: params.pagina,
-    tamanhoPagina: params.tamanhoPagina ?? 50,
-  })
+  if (params.codigoModalidadeContratacao) {
+    return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/publicacao", {
+      dataInicial: params.dataInicial,
+      dataFinal: params.dataFinal,
+      codigoModalidadeContratacao: params.codigoModalidadeContratacao,
+      codigoModoDisputa: params.codigoModoDisputa,
+      uf: params.uf,
+      codigoMunicipioIbge: params.codigoMunicipioIbge,
+      cnpj: params.cnpj,
+      codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
+      pagina: params.pagina,
+      tamanhoPagina: params.tamanhoPagina ?? 50,
+    })
+  }
+
+  // Sem filtro de modalidade: busca em todas em paralelo e mescla resultados
+  const results = await Promise.all(
+    MODALIDADES.map((m) =>
+      fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/publicacao", {
+        dataInicial: params.dataInicial,
+        dataFinal: params.dataFinal,
+        codigoModalidadeContratacao: m.id,
+        uf: params.uf,
+        codigoMunicipioIbge: params.codigoMunicipioIbge,
+        cnpj: params.cnpj,
+        codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
+        pagina: params.pagina,
+        tamanhoPagina: params.tamanhoPagina ?? 50,
+      })
+    )
+  )
+
+  // Mescla removendo duplicatas pelo numeroControlePNCP e ordena por data
+  const seen = new Set<string>()
+  const merged = results
+    .flatMap((r) => r.data ?? [])
+    .filter((item) => {
+      if (seen.has(item.numeroControlePNCP)) return false
+      seen.add(item.numeroControlePNCP)
+      return true
+    })
+    .sort((a, b) => new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime())
+
+  return {
+    data: merged,
+    totalRegistros: merged.length,
+    totalPaginas: 1,
+    numeroPagina: params.pagina,
+    paginasRestantes: 0,
+    empty: merged.length === 0,
+  }
 }
 
 export async function buscarContratacoesComPropostaAberta(
@@ -58,18 +97,55 @@ export async function buscarContratacoesComPropostaAberta(
 export async function buscarContratacoesPorAtualizacao(
   params: PncpSearchParams
 ): Promise<PaginaRetornoRecuperarCompraPublicacaoDTO> {
-  return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/atualizacao", {
-    dataInicial: params.dataInicial,
-    dataFinal: params.dataFinal,
-    codigoModalidadeContratacao: params.codigoModalidadeContratacao,
-    codigoModoDisputa: params.codigoModoDisputa,
-    uf: params.uf,
-    codigoMunicipioIbge: params.codigoMunicipioIbge,
-    cnpj: params.cnpj,
-    codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
-    pagina: params.pagina,
-    tamanhoPagina: params.tamanhoPagina ?? 50,
-  })
+  if (params.codigoModalidadeContratacao) {
+    return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/atualizacao", {
+      dataInicial: params.dataInicial,
+      dataFinal: params.dataFinal,
+      codigoModalidadeContratacao: params.codigoModalidadeContratacao,
+      codigoModoDisputa: params.codigoModoDisputa,
+      uf: params.uf,
+      codigoMunicipioIbge: params.codigoMunicipioIbge,
+      cnpj: params.cnpj,
+      codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
+      pagina: params.pagina,
+      tamanhoPagina: params.tamanhoPagina ?? 50,
+    })
+  }
+
+  const results = await Promise.all(
+    MODALIDADES.map((m) =>
+      fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/atualizacao", {
+        dataInicial: params.dataInicial,
+        dataFinal: params.dataFinal,
+        codigoModalidadeContratacao: m.id,
+        uf: params.uf,
+        codigoMunicipioIbge: params.codigoMunicipioIbge,
+        cnpj: params.cnpj,
+        codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
+        pagina: params.pagina,
+        tamanhoPagina: params.tamanhoPagina ?? 50,
+      })
+    )
+  )
+
+  const seen = new Set<string>()
+  const merged = results
+    .flatMap((r) => r.data ?? [])
+    .filter((item) => {
+      if (seen.has(item.numeroControlePNCP)) return false
+      seen.add(item.numeroControlePNCP)
+      return true
+    })
+    .sort((a, b) => new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime())
+
+  return {
+    data: merged,
+    totalRegistros: merged.length,
+    totalPaginas: 1,
+    numeroPagina: params.pagina,
+    paginasRestantes: 0,
+    empty: merged.length === 0,
+  }
 }
 
 export async function buscarDetalheContratacao(
