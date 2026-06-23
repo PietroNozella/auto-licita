@@ -6,9 +6,11 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
   try {
-    // Verifica cron secret para segurança
+    // Aceita tanto o header do Vercel Cron quanto CRON_SECRET manual
+    const isVercelCron = request.headers.get("x-vercel-cron") === "1"
     const authHeader = request.headers.get("authorization")
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const hasValidSecret = authHeader === `Bearer ${process.env.CRON_SECRET}`
+    if (!isVercelCron && !hasValidSecret) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
 
