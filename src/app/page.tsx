@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [monitoramentos, setMonitoramentos] = useState<Monitoramento[]>([])
   const [notificacoesNaoLidas, setNotificacoesNaoLidas] = useState(0)
   const [erro, setErro] = useState("")
+  const [hasSearched, setHasSearched] = useState(false)
   const mounted = useRef(false)
 
   const carregarMonitoramentos = useCallback(async () => {
@@ -60,6 +61,7 @@ export default function Dashboard() {
   }) {
     setLoading(true)
     setErro("")
+    setHasSearched(true)
     try {
       const searchParams = new URLSearchParams()
       searchParams.set("tipo", "publicacao")
@@ -111,9 +113,10 @@ export default function Dashboard() {
           </div>
           <button
             onClick={carregarNotificacoes}
+            aria-label="Atualizar notificações"
             className="relative p-2 text-zinc-500 hover:text-zinc-700 transition-colors"
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="h-5 w-5" aria-hidden="true" />
             <span className="absolute -top-0.5 -right-0.5">
               <NotificationBadge count={notificacoesNaoLidas} />
             </span>
@@ -140,7 +143,7 @@ export default function Dashboard() {
             </div>
 
             {erro && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+              <div role="alert" className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
                 {erro}
               </div>
             )}
@@ -150,7 +153,7 @@ export default function Dashboard() {
                 <h2 className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Resultados</h2>
                 <ExportButton data={results} />
               </div>
-              <ResultsTable data={results} total={total} />
+              <ResultsTable data={results} total={total} hasSearched={hasSearched} />
             </div>
           </div>
         </div>
