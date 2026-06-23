@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Trash2, Clock } from "lucide-react"
+import { BellRing, Clock, Plus, Trash2 } from "lucide-react"
 import { formatDateShort } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
 import type { Monitoramento } from "@/types/pncp"
@@ -86,17 +86,25 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Monitoramentos</h3>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <BellRing className="h-5 w-5 text-blue-600" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Agendar monitoramento</h2>
+          </div>
+          <p className="mt-1 text-sm text-zinc-500">
+            Crie alertas por palavras-chave para acompanhar novas publicações automaticamente.
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
           aria-expanded={showForm}
-          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
         >
-          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-          Novo
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Novo agendamento
         </button>
       </div>
 
@@ -107,112 +115,116 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
       )}
 
       {showForm && (
-        <form onSubmit={handleCreate} className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-2">
-          <label htmlFor="monitor-nome" className="sr-only">Nome do monitoramento</label>
-          <input
-            id="monitor-nome"
-            type="text"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Nome do monitoramento"
-            required
-            className="w-full px-3 py-2 rounded-md border border-blue-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <label htmlFor="monitor-palavras" className="sr-only">Palavras-chave</label>
-          <input
-            id="monitor-palavras"
-            type="text"
-            value={palavras}
-            onChange={(e) => setPalavras(e.target.value)}
-            placeholder="Palavras-chave separadas por vírgula"
-            required
-            className="w-full px-3 py-2 rounded-md border border-blue-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label htmlFor="monitor-uf" className="sr-only">UF</label>
-            <select id="monitor-uf" value={uf} onChange={(e) => setUf(e.target.value)} className="px-3 py-2 rounded-md border border-blue-200 text-sm">
-              <option value="">Todas UF</option>
+        <form onSubmit={handleCreate} className="grid gap-3 rounded-lg border border-blue-200 bg-blue-50/70 p-4 lg:grid-cols-[1fr_1.5fr_120px_220px_auto] lg:items-end">
+          <div>
+            <label htmlFor="monitor-nome" className="mb-1 block text-xs font-medium text-zinc-500">Nome</label>
+            <input
+              id="monitor-nome"
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex.: TI em SP"
+              required
+              className="w-full rounded-md border border-blue-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="monitor-palavras" className="mb-1 block text-xs font-medium text-zinc-500">Palavras-chave</label>
+            <input
+              id="monitor-palavras"
+              type="text"
+              value={palavras}
+              onChange={(e) => setPalavras(e.target.value)}
+              placeholder="software, suporte, nuvem"
+              required
+              className="w-full rounded-md border border-blue-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="monitor-uf" className="mb-1 block text-xs font-medium text-zinc-500">UF</label>
+            <select id="monitor-uf" value={uf} onChange={(e) => setUf(e.target.value)} className="w-full rounded-md border border-blue-200 px-3 py-2 text-sm">
+              <option value="">Todas</option>
               {UF_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-            <label htmlFor="monitor-modalidade" className="sr-only">Modalidade</label>
-            <select id="monitor-modalidade" value={modalidadeId} onChange={(e) => setModalidadeId(e.target.value)} className="px-3 py-2 rounded-md border border-blue-200 text-sm">
-              <option value="">Todas modalidades</option>
+          </div>
+          <div>
+            <label htmlFor="monitor-modalidade" className="mb-1 block text-xs font-medium text-zinc-500">Modalidade</label>
+            <select id="monitor-modalidade" value={modalidadeId} onChange={(e) => setModalidadeId(e.target.value)} className="w-full rounded-md border border-blue-200 px-3 py-2 text-sm">
+              <option value="">Todas</option>
               {MODALIDADES.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
             </select>
           </div>
           <button
             type="submit"
             disabled={salvando}
-            className="w-full py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
-            {salvando ? "Salvando..." : "Criar Monitoramento"}
+            {salvando ? "Salvando..." : "Agendar"}
           </button>
         </form>
       )}
 
-      {monitoramentos.length === 0 && !showForm && (
-        <p className="text-sm text-zinc-400 text-center py-4">
-          Nenhum monitoramento ativo. Crie um para receber notificações de novas licitações.
-        </p>
-      )}
-
-      <div className="space-y-2 max-h-[400px] overflow-y-auto">
-        {monitoramentos.map((m) => (
-          <div
-            key={m.id}
-            className={`p-3 rounded-lg border transition-colors ${
-              m.ativo ? "bg-white border-zinc-200" : "bg-zinc-50 border-zinc-200 opacity-60"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-zinc-800 truncate">{m.nome}</p>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  {m.palavras_chave.join(", ")}
-                </p>
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {m.uf && <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">{m.uf}</span>}
-                  {m.modalidade_id && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">
-                      {MODALIDADES.find((mod) => mod.id === m.modalidade_id)?.nome}
-                    </span>
-                  )}
+      {monitoramentos.length === 0 && !showForm ? (
+        <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-8 text-center">
+          <p className="text-sm text-zinc-500">Nenhum monitoramento ativo.</p>
+          <p className="mt-1 text-sm text-zinc-400">Crie um agendamento para receber notificações de novas licitações.</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {monitoramentos.map((m) => (
+            <article
+              key={m.id}
+              className={`rounded-lg border p-4 transition-colors ${
+                m.ativo ? "border-zinc-200 bg-white" : "border-zinc-200 bg-zinc-50 opacity-70"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-semibold text-zinc-800">{m.nome}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs text-zinc-500">{m.palavras_chave.join(", ")}</p>
                 </div>
-                {m.ultima_verificacao && (
-                  <p className="text-[10px] text-zinc-400 mt-1 flex items-center gap-1">
-                    <Clock className="h-3 w-3" aria-hidden="true" />
-                    Verificado em {formatDateShort(m.ultima_verificacao)}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => toggleAtivo(m)}
-                  disabled={actionId === m.id}
-                  aria-label={`${m.ativo ? "Pausar" : "Ativar"} monitoramento ${m.nome}`}
-                  className={`px-2 py-1 text-[10px] rounded transition-colors disabled:opacity-50 ${
-                    m.ativo
-                      ? "bg-green-100 text-green-700 hover:bg-green-200"
-                      : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-                  }`}
-                >
-                  {m.ativo ? "Ativo" : "Pausado"}
-                </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(m)}
                   disabled={actionId === m.id}
                   aria-label={`Excluir monitoramento ${m.nome}`}
-                  className="p-1 text-zinc-400 hover:text-red-600 disabled:opacity-50 transition-colors"
+                  className="shrink-0 rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                 >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
+
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className={`rounded px-2 py-1 text-xs font-medium ${m.ativo ? "bg-green-50 text-green-700" : "bg-zinc-100 text-zinc-500"}`}>
+                  {m.ativo ? "Ativo" : "Pausado"}
+                </span>
+                {m.uf && <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">{m.uf}</span>}
+                {m.modalidade_id && (
+                  <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">
+                    {MODALIDADES.find((mod) => mod.id === m.modalidade_id)?.nome}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
+                <p className="flex items-center gap-1 text-xs text-zinc-400">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                  {m.ultima_verificacao ? `Verificado em ${formatDateShort(m.ultima_verificacao)}` : "Ainda não verificado"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => toggleAtivo(m)}
+                  disabled={actionId === m.id}
+                  aria-label={`${m.ativo ? "Pausar" : "Ativar"} monitoramento ${m.nome}`}
+                  className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  {m.ativo ? "Pausar" : "Ativar"}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

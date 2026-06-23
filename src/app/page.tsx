@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { SearchForm } from "@/components/search-form"
 import { ResultsTable } from "@/components/results-table"
 import { ExportButton } from "@/components/export-button"
@@ -8,6 +8,15 @@ import { MonitorCard } from "@/components/monitor-card"
 import { NotificationBadge } from "@/components/notification-badge"
 import type { RecuperarCompraPublicacaoDTO, Monitoramento } from "@/types/pncp"
 import { Bell, FileSearch } from "lucide-react"
+
+interface SearchParamsState {
+  query: string
+  dataInicial: string
+  dataFinal: string
+  modalidade: string
+  uf: string
+  cnpj: string
+}
 
 export default function Dashboard() {
   const [results, setResults] = useState<RecuperarCompraPublicacaoDTO[]>([])
@@ -17,6 +26,7 @@ export default function Dashboard() {
   const [notificacoesNaoLidas, setNotificacoesNaoLidas] = useState(0)
   const [erro, setErro] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
+  const [searchVersion, setSearchVersion] = useState(0)
   const mounted = useRef(false)
 
   const carregarMonitoramentos = useCallback(async () => {
@@ -27,7 +37,7 @@ export default function Dashboard() {
         setMonitoramentos(data)
       }
     } catch {
-      // Silencioso
+      // Mantém o dashboard utilizável mesmo se os monitoramentos falharem.
     }
   }, [])
 
@@ -40,7 +50,7 @@ export default function Dashboard() {
         .eq("lida", false)
       setNotificacoesNaoLidas(count ?? 0)
     } catch {
-      // Silencioso
+      // Mantém o dashboard utilizável mesmo se as notificações falharem.
     }
   }, [])
 
@@ -51,23 +61,18 @@ export default function Dashboard() {
     carregarNotificacoes()
   }, [carregarMonitoramentos, carregarNotificacoes])
 
-  async function handleSearch(params: {
-    query: string
-    dataInicial: string
-    dataFinal: string
-    modalidade: string
-    uf: string
-    cnpj: string
-  }) {
+  async function handleSearch(params: SearchParamsState) {
     setLoading(true)
     setErro("")
     setHasSearched(true)
+    setSearchVersion((version) => version + 1)
     try {
       const searchParams = new URLSearchParams()
       searchParams.set("tipo", "publicacao")
       searchParams.set("dataInicial", params.dataInicial)
       searchParams.set("dataFinal", params.dataFinal)
       searchParams.set("pagina", "1")
+      searchParams.set("tamanhoPagina", "50")
       if (params.modalidade) searchParams.set("codigoModalidadeContratacao", params.modalidade)
       if (params.uf) searchParams.set("uf", params.uf)
       if (params.cnpj) searchParams.set("cnpj", params.cnpj)
@@ -79,13 +84,12 @@ export default function Dashboard() {
       }
       const data = await res.json()
 
-      // Filtra por palavra-chave se houver query
       let items = data.data ?? []
       if (params.query.trim()) {
-        const q = params.query.toLowerCase()
+        const palavras = params.query.toLowerCase().split(" ").filter(Boolean)
         items = items.filter((item: RecuperarCompraPublicacaoDTO) => {
           const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`.toLowerCase()
-          return q.split(" ").some((palavra) => texto.includes(palavra))
+          return palavras.some((palavra) => texto.includes(palavra))
         })
       }
 
@@ -105,7 +109,7 @@ export default function Dashboard() {
       <header className="bg-white border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <FileSearch className="h-6 w-6 text-blue-600" />
+            <FileSearch className="h-6 w-6 text-blue-600" aria-hidden="true" />
             <div>
               <h1 className="text-lg font-bold text-zinc-800">Automação de Licitações</h1>
               <p className="text-xs text-zinc-400">PNCP - Portal Nacional de Contratações Públicas</p>
@@ -124,39 +128,38 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar - Monitoramentos */}
-          <aside className="lg:col-span-1">
-            <div className="bg-white rounded-xl border border-zinc-200 p-4 sticky top-6">
-              <MonitorCard monitoramentos={monitoramentos} onCreated={() => {
-                carregarMonitoramentos()
-                carregarNotificacoes()
-              }} />
-            </div>
-          </aside>
-
-          {/* Conteúdo Principal */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="bg-white rounded-xl border border-zinc-200 p-4">
-              <SearchForm onSearch={handleSearch} loading={loading} />
-            </div>
-
-            {erro && (
-              <div role="alert" className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-                {erro}
-              </div>
-            )}
-
-            <div className="bg-white rounded-xl border border-zinc-200 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-zinc-600 uppercase tracking-wider">Resultados</h2>
-                <ExportButton data={results} />
-              </div>
-              <ResultsTable data={results} total={total} hasSearched={hasSearched} />
-            </div>
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <section className="bg-white rounded-xl border border-zinc-200 p-4">
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Buscar licitações</h2>
+            <p className="text-sm text-zinc-500 mt-1">Consulte publicações do PNCP por período, modalidade, UF ou órgão.</p>
           </div>
-        </div>
+          <SearchForm onSearch={handleSearch} loading={loading} />
+        </section>
+
+        {erro && (
+          <div role="alert" className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+            {erro}
+          </div>
+        )}
+
+        <section className="bg-white rounded-xl border border-zinc-200 p-4">
+          <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Licitações encontradas</h2>
+              <p className="text-sm text-zinc-500 mt-1">Resultados organizados para comparação rápida e ação direta.</p>
+            </div>
+            <ExportButton data={results} />
+          </div>
+          <ResultsTable key={searchVersion} data={results} total={total} hasSearched={hasSearched} pageSize={8} />
+        </section>
+
+        <section className="bg-white rounded-xl border border-zinc-200 p-4">
+          <MonitorCard monitoramentos={monitoramentos} onCreated={() => {
+            carregarMonitoramentos()
+            carregarNotificacoes()
+          }} />
+        </section>
       </main>
     </div>
   )

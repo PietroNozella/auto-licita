@@ -1,25 +1,45 @@
+"use client"
+
+import { useMemo, useState } from "react"
 import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
-import { formatCurrency, formatDate } from "@/lib/utils"
-import { ExternalLink } from "lucide-react"
+import { formatCurrency, formatDate, formatDateShort } from "@/lib/utils"
+import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Landmark, MapPin } from "lucide-react"
 
 interface ResultsTableProps {
   data: RecuperarCompraPublicacaoDTO[]
   total?: number
   hasSearched?: boolean
+  pageSize?: number
 }
 
 function getEstimatedValue(item: RecuperarCompraPublicacaoDTO) {
-  return item.valorTotalEstimado != null ? formatCurrency(item.valorTotalEstimado) : "-"
+  return item.valorTotalEstimado != null ? formatCurrency(item.valorTotalEstimado) : "Valor não informado"
 }
 
-export function ResultsTable({ data, total, hasSearched = true }: ResultsTableProps) {
+function getDateLabel(dateString?: string) {
+  return dateString ? formatDateShort(dateString) : "Não informado"
+}
+
+function getPageItems(data: RecuperarCompraPublicacaoDTO[], page: number, pageSize: number) {
+  const start = (page - 1) * pageSize
+  return data.slice(start, start + pageSize)
+}
+
+export function ResultsTable({ data, total, hasSearched = true, pageSize = 8 }: ResultsTableProps) {
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(data.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pageItems = useMemo(() => getPageItems(data, currentPage, pageSize), [data, currentPage, pageSize])
+  const startItem = data.length === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const endItem = Math.min(currentPage * pageSize, data.length)
+
   if (data.length === 0) {
     return (
-      <div className="text-center py-12 text-zinc-400">
-        <p className="text-lg text-zinc-500">
+      <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-12 text-center">
+        <p className="text-base font-medium text-zinc-600">
           {hasSearched ? "Nenhuma licitação encontrada" : "Faça uma busca para listar licitações"}
         </p>
-        <p className="text-sm mt-1">
+        <p className="text-sm text-zinc-400 mt-1">
           {hasSearched ? "Tente ajustar os filtros da busca" : "Use palavra-chave, período e filtros para consultar o PNCP"}
         </p>
       </div>
@@ -27,107 +47,123 @@ export function ResultsTable({ data, total, hasSearched = true }: ResultsTablePr
   }
 
   return (
-    <div>
-      {total !== undefined && (
-        <p className="text-sm text-zinc-500 mb-3">
-          {total} licitação{total !== 1 ? "ões" : ""} encontrada{total !== 1 ? "s" : ""}
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 border-b border-zinc-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-zinc-500">
+          Exibindo <span className="font-medium text-zinc-700">{startItem}-{endItem}</span> de{" "}
+          <span className="font-medium text-zinc-700">{total ?? data.length}</span> licitação{(total ?? data.length) !== 1 ? "ões" : ""}
         </p>
-      )}
+        {totalPages > 1 && (
+          <p className="text-xs text-zinc-400">Página {currentPage} de {totalPages}</p>
+        )}
+      </div>
 
-      <div className="space-y-3 md:hidden">
-        {data.map((item) => (
-          <article key={item.numeroControlePNCP} className="rounded-lg border border-zinc-200 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="text-sm font-medium text-zinc-800">{item.objetoCompra}</h3>
-                <p className="text-xs text-zinc-500 mt-1">{item.orgaoEntidade?.razaoSocial ?? "Órgão não informado"}</p>
+      <div className="space-y-3">
+        {pageItems.map((item) => (
+          <article key={item.numeroControlePNCP} className="rounded-lg border border-zinc-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/20">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{item.modalidadeNome}</span>
+                  {item.unidadeOrgao?.ufSigla && (
+                    <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                      <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+                      {item.unidadeOrgao.ufSigla}
+                    </span>
+                  )}
+                  {item.situacaoCompraNome && (
+                    <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">{item.situacaoCompraNome}</span>
+                  )}
+                </div>
+
+                <h3 className="mt-3 text-base font-semibold leading-snug text-zinc-800">
+                  {item.objetoCompra}
+                </h3>
+
+                <div className="mt-3 flex flex-col gap-1.5 text-sm text-zinc-500 sm:flex-row sm:flex-wrap sm:gap-x-4">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Landmark className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+                    {item.orgaoEntidade?.razaoSocial ?? "Órgão não informado"}
+                  </span>
+                  {item.unidadeOrgao?.municipioNome && (
+                    <span>{item.unidadeOrgao.municipioNome}</span>
+                  )}
+                  {item.numeroCompra && <span className="font-mono text-xs">Compra {item.numeroCompra}</span>}
+                </div>
+              </div>
+
+              <div className="grid shrink-0 grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-3 text-sm lg:w-80">
+                <div>
+                  <p className="text-xs text-zinc-400">Valor estimado</p>
+                  <p className="mt-1 font-mono font-semibold text-zinc-800">{getEstimatedValue(item)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-400">Publicação</p>
+                  <p className="mt-1 text-zinc-700">{getDateLabel(item.dataPublicacaoPncp)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-400">Abertura</p>
+                  <p className="mt-1 text-zinc-700">{getDateLabel(item.dataAberturaProposta)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-400">Encerramento</p>
+                  <p className="mt-1 text-zinc-700">{getDateLabel(item.dataEncerramentoProposta)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 border-t border-zinc-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+                <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                Atualizado em {item.dataAtualizacao ? formatDate(item.dataAtualizacao) : "data não informada"}
               </div>
               {item.linkSistemaOrigem && (
                 <a
                   href={item.linkSistemaOrigem}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 text-blue-600 hover:text-blue-800"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
                   aria-label={`Abrir edital de ${item.objetoCompra}`}
                 >
+                  Abrir edital
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 </a>
               )}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-500">
-              <span className="rounded bg-blue-50 px-2 py-0.5 font-medium text-blue-700">{item.modalidadeNome}</span>
-              <span>{item.unidadeOrgao?.ufSigla ?? "UF não informada"}</span>
-              <span className="font-mono">{getEstimatedValue(item)}</span>
-              <span>{item.dataPublicacaoPncp ? formatDate(item.dataPublicacaoPncp) : "Sem publicação"}</span>
             </div>
           </article>
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[900px] text-sm">
-          <thead>
-            <tr className="border-b border-zinc-200">
-              <th scope="col" className="text-left py-3 px-4 font-medium text-zinc-500">Objeto</th>
-              <th scope="col" className="text-left py-3 px-4 font-medium text-zinc-500">Órgão</th>
-              <th scope="col" className="text-left py-3 px-4 font-medium text-zinc-500">Modalidade</th>
-              <th scope="col" className="text-left py-3 px-4 font-medium text-zinc-500">UF</th>
-              <th scope="col" className="text-right py-3 px-4 font-medium text-zinc-500">Valor Estimado</th>
-              <th scope="col" className="text-left py-3 px-4 font-medium text-zinc-500">Publicação</th>
-              <th scope="col" className="text-left py-3 px-4 font-medium text-zinc-500">Abertura</th>
-              <th scope="col" className="text-center py-3 px-4 font-medium text-zinc-500">Link</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item) => (
-              <tr key={item.numeroControlePNCP} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                <td className="py-3 px-4 max-w-xs">
-                  <p className="truncate font-medium text-zinc-800" title={item.objetoCompra ?? undefined}>
-                    {item.objetoCompra}
-                  </p>
-                  {item.numeroCompra && (
-                    <p className="text-xs text-zinc-400 mt-0.5">{item.numeroCompra}</p>
-                  )}
-                </td>
-                <td className="py-3 px-4">
-                  <p className="truncate max-w-[200px]" title={item.orgaoEntidade?.razaoSocial ?? undefined}>
-                    {item.orgaoEntidade?.razaoSocial ?? "-"}
-                  </p>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-                    {item.modalidadeNome}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-zinc-600">{item.unidadeOrgao?.ufSigla ?? "-"}</td>
-                <td className="py-3 px-4 text-right font-mono text-sm">
-                  {getEstimatedValue(item)}
-                </td>
-                <td className="py-3 px-4 text-zinc-600 text-xs">
-                  {item.dataPublicacaoPncp ? formatDate(item.dataPublicacaoPncp) : "-"}
-                </td>
-                <td className="py-3 px-4 text-zinc-600 text-xs">
-                  {item.dataAberturaProposta ? formatDate(item.dataAberturaProposta) : "-"}
-                </td>
-                <td className="py-3 px-4 text-center">
-                  {item.linkSistemaOrigem && (
-                    <a
-                      href={item.linkSistemaOrigem}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800"
-                      aria-label={`Abrir edital de ${item.objetoCompra}`}
-                      title="Abrir edital"
-                    >
-                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    </a>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {totalPages > 1 && (
+        <nav className="flex flex-col gap-3 border-t border-zinc-100 pt-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de licitações">
+          <p className="text-sm text-zinc-500">
+            {data.length} resultado{data.length !== 1 ? "s" : ""} nesta busca
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Anterior
+            </button>
+            <span className="min-w-20 text-center text-sm text-zinc-500">
+              {currentPage}/{totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Próxima
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </nav>
+      )}
     </div>
   )
 }
