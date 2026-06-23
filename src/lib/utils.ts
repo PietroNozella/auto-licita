@@ -13,10 +13,13 @@ export function formatCurrency(value: number): string {
 }
 
 export function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(dateString))
+  const d = new Date(dateString)
+  const dia = String(d.getDate()).padStart(2, "0")
+  const mes = String(d.getMonth() + 1).padStart(2, "0")
+  const ano = d.getFullYear()
+  const hora = String(d.getHours()).padStart(2, "0")
+  const min = String(d.getMinutes()).padStart(2, "0")
+  return `${dia}/${mes}/${ano} ${hora}:${min}`
 }
 
 export function formatDateShort(dateString: string): string {
