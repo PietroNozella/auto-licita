@@ -83,7 +83,7 @@ export default function Dashboard() {
         const q = params.query.toLowerCase()
         items = items.filter((item: RecuperarCompraPublicacaoDTO) => {
           const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`.toLowerCase()
-          return q.split(" ").every((palavra) => texto.includes(palavra))
+          return q.split(" ").some((palavra) => texto.includes(palavra))
         })
       }
 
