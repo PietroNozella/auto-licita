@@ -6,6 +6,9 @@ import type {
   PncpSearchParams,
 } from "@/types/pncp"
 
+const MAX_CONCURRENCY = 3
+const MAX_RETRIES = 2
+
 async function fetchFromPncp<T>(path: string, params: Record<string, string | number | undefined>): Promise<T> {
   const searchParams = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
@@ -14,55 +17,61 @@ async function fetchFromPncp<T>(path: string, params: Record<string, string | nu
     }
   }
   const url = `${BASE_URL}${path}?${searchParams.toString()}`
-  const res = await fetch(url, {
-    next: { revalidate: 300 },
-  })
-  if (res.status === 204) {
-    return { data: [], totalRegistros: 0, totalPaginas: 0, numeroPagina: 1, paginasRestantes: 0, empty: true } as unknown as T
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, { next: { revalidate: 300 } })
+      if (res.status === 204) {
+        return { data: [], totalRegistros: 0, totalPaginas: 0, numeroPagina: 1, paginasRestantes: 0, empty: true } as unknown as T
+      }
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`Erro na PNCP API: ${res.status} - ${text || res.statusText}`)
+      }
+      return res.json()
+    } catch (error) {
+      if (attempt < MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
+        continue
+      }
+      throw error
+    }
   }
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Erro na PNCP API: ${res.status} - ${text || res.statusText}`)
-  }
-  return res.json()
+  throw new Error("Todas as tentativas falharam")
 }
 
-export async function buscarContratacoesPorPublicacao(
+async function buscarTodasModalidades<T>(
+  path: string,
   params: PncpSearchParams
 ): Promise<PaginaRetornoRecuperarCompraPublicacaoDTO> {
-  if (params.codigoModalidadeContratacao) {
-    return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/publicacao", {
-      dataInicial: params.dataInicial,
-      dataFinal: params.dataFinal,
-      codigoModalidadeContratacao: params.codigoModalidadeContratacao,
-      codigoModoDisputa: params.codigoModoDisputa,
-      uf: params.uf,
-      codigoMunicipioIbge: params.codigoMunicipioIbge,
-      cnpj: params.cnpj,
-      codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
-      pagina: params.pagina,
-      tamanhoPagina: params.tamanhoPagina ?? 50,
-    })
+  // Executa com limite de concorrência para não sobrecarregar a API
+  const results: PaginaRetornoRecuperarCompraPublicacaoDTO[] = []
+  const queue = [...MODALIDADES]
+
+  async function worker() {
+    while (queue.length > 0) {
+      const m = queue.shift()!
+      try {
+        const r = await fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>(path, {
+          dataInicial: params.dataInicial,
+          dataFinal: params.dataFinal,
+          codigoModalidadeContratacao: m.id,
+          uf: params.uf,
+          codigoMunicipioIbge: params.codigoMunicipioIbge,
+          cnpj: params.cnpj,
+          codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
+          pagina: params.pagina,
+          tamanhoPagina: params.tamanhoPagina ?? 50,
+        })
+        results.push(r)
+      } catch {
+        // Se uma modalidade falhar, pula silenciosamente
+      }
+    }
   }
 
-  // Sem filtro de modalidade: busca em todas em paralelo e mescla resultados
-  const results = await Promise.all(
-    MODALIDADES.map((m) =>
-      fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/publicacao", {
-        dataInicial: params.dataInicial,
-        dataFinal: params.dataFinal,
-        codigoModalidadeContratacao: m.id,
-        uf: params.uf,
-        codigoMunicipioIbge: params.codigoMunicipioIbge,
-        cnpj: params.cnpj,
-        codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
-        pagina: params.pagina,
-        tamanhoPagina: params.tamanhoPagina ?? 50,
-      })
-    )
-  )
+  await Promise.all(Array.from({ length: MAX_CONCURRENCY }, () => worker()))
 
-  // Mescla removendo duplicatas pelo numeroControlePNCP e ordena por data
   const seen = new Set<string>()
   const merged = results
     .flatMap((r) => r.data ?? [])
@@ -81,6 +90,23 @@ export async function buscarContratacoesPorPublicacao(
     paginasRestantes: 0,
     empty: merged.length === 0,
   }
+}
+
+export async function buscarContratacoesPorPublicacao(
+  params: PncpSearchParams
+): Promise<PaginaRetornoRecuperarCompraPublicacaoDTO> {
+  if (params.codigoModalidadeContratacao) {
+    return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/publicacao", {
+      dataInicial: params.dataInicial,
+      dataFinal: params.dataFinal,
+      codigoModalidadeContratacao: params.codigoModalidadeContratacao,
+      uf: params.uf,
+      cnpj: params.cnpj,
+      pagina: params.pagina,
+      tamanhoPagina: params.tamanhoPagina ?? 50,
+    })
+  }
+  return buscarTodasModalidades("/v1/contratacoes/publicacao", params)
 }
 
 export async function buscarContratacoesComPropostaAberta(
@@ -106,50 +132,13 @@ export async function buscarContratacoesPorAtualizacao(
       dataInicial: params.dataInicial,
       dataFinal: params.dataFinal,
       codigoModalidadeContratacao: params.codigoModalidadeContratacao,
-      codigoModoDisputa: params.codigoModoDisputa,
       uf: params.uf,
-      codigoMunicipioIbge: params.codigoMunicipioIbge,
       cnpj: params.cnpj,
-      codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
       pagina: params.pagina,
       tamanhoPagina: params.tamanhoPagina ?? 50,
     })
   }
-
-  const results = await Promise.all(
-    MODALIDADES.map((m) =>
-      fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/atualizacao", {
-        dataInicial: params.dataInicial,
-        dataFinal: params.dataFinal,
-        codigoModalidadeContratacao: m.id,
-        uf: params.uf,
-        codigoMunicipioIbge: params.codigoMunicipioIbge,
-        cnpj: params.cnpj,
-        codigoUnidadeAdministrativa: params.codigoUnidadeAdministrativa,
-        pagina: params.pagina,
-        tamanhoPagina: params.tamanhoPagina ?? 50,
-      })
-    )
-  )
-
-  const seen = new Set<string>()
-  const merged = results
-    .flatMap((r) => r.data ?? [])
-    .filter((item) => {
-      if (seen.has(item.numeroControlePNCP)) return false
-      seen.add(item.numeroControlePNCP)
-      return true
-    })
-    .sort((a, b) => new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime())
-
-  return {
-    data: merged,
-    totalRegistros: merged.length,
-    totalPaginas: 1,
-    numeroPagina: params.pagina,
-    paginasRestantes: 0,
-    empty: merged.length === 0,
-  }
+  return buscarTodasModalidades("/v1/contratacoes/atualizacao", params)
 }
 
 export async function buscarDetalheContratacao(
