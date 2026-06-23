@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { getSupabaseAdmin } from "@/lib/supabase"
 import { buscarContratacoesPorPublicacao } from "@/lib/pncp-api"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
   try {
-    // Aceita tanto o header do Vercel Cron quanto CRON_SECRET manual
+    // Verifica cron secret ou header do Vercel
     const isVercelCron = request.headers.get("x-vercel-cron") === "1"
     const authHeader = request.headers.get("authorization")
     const hasValidSecret = authHeader === `Bearer ${process.env.CRON_SECRET}`
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
 
-    const supabase = getSupabase()
+    const supabase = getSupabaseAdmin()
 
     // Busca todos os monitoramentos ativos
     const { data: monitoramentos, error: errMonitor } = await supabase

@@ -7,7 +7,8 @@ import { ExportButton } from "@/components/export-button"
 import { MonitorCard } from "@/components/monitor-card"
 import { NotificationBadge } from "@/components/notification-badge"
 import type { RecuperarCompraPublicacaoDTO, Monitoramento } from "@/types/pncp"
-import { Bell, FileSearch } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
+import { Bell, FileSearch, LogOut, User } from "lucide-react"
 
 interface SearchParamsState {
   query: string
@@ -19,6 +20,7 @@ interface SearchParamsState {
 }
 
 export default function Dashboard() {
+  const { user, logout } = useAuth()
   const [results, setResults] = useState<RecuperarCompraPublicacaoDTO[]>([])
   const [total, setTotal] = useState<number>(0)
   const [loading, setLoading] = useState(false)
@@ -43,12 +45,11 @@ export default function Dashboard() {
 
   const carregarNotificacoes = useCallback(async () => {
     try {
-      const { getSupabase } = await import("@/lib/supabase")
-      const { count } = await getSupabase()
-        .from("notificacoes")
-        .select("*", { count: "exact", head: true })
-        .eq("lida", false)
-      setNotificacoesNaoLidas(count ?? 0)
+      const res = await fetch("/api/monitor/resultados")
+      if (!res.ok) return
+      const data = await res.json()
+      const total = Object.values(data.resultados ?? {}).flat().filter((r: any) => !r.notificado).length
+      setNotificacoesNaoLidas(total)
     } catch {
       // Mantém o dashboard utilizável mesmo se as notificações falharem.
     }
@@ -115,16 +116,32 @@ export default function Dashboard() {
               <p className="text-xs text-zinc-400">PNCP - Portal Nacional de Contratações Públicas</p>
             </div>
           </div>
-          <button
-            onClick={carregarNotificacoes}
-            aria-label="Atualizar notificações"
-            className="relative p-2 text-zinc-500 hover:text-zinc-700 transition-colors"
-          >
-            <Bell className="h-5 w-5" aria-hidden="true" />
-            <span className="absolute -top-0.5 -right-0.5">
-              <NotificationBadge count={notificacoesNaoLidas} />
-            </span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={carregarNotificacoes}
+              aria-label="Atualizar notificações"
+              className="relative p-2 text-zinc-500 hover:text-zinc-700 transition-colors"
+            >
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              <span className="absolute -top-0.5 -right-0.5">
+                <NotificationBadge count={notificacoesNaoLidas} />
+              </span>
+            </button>
+
+            {user && (
+              <div className="flex items-center gap-2 pl-3 border-l border-zinc-200">
+                <User className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+                <span className="text-sm text-zinc-500 hidden sm:inline">{user.email}</span>
+                <button
+                  onClick={logout}
+                  className="p-1.5 text-zinc-400 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
+                  aria-label="Sair"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

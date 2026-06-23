@@ -18,26 +18,22 @@ export default function MonitoramentosPage() {
     setErro("")
     setLoading(true)
     try {
-      const res = await fetch("/api/monitor")
+      const res = await fetch("/api/monitor/resultados")
       if (!res.ok) throw new Error("Não foi possível carregar os monitoramentos.")
-      const data: Monitoramento[] = await res.json()
-      setMonitoramentos(data)
-      setActiveTab((current) => current && data.some((m) => m.id === current) ? current : data[0]?.id ?? null)
-
-      const { getSupabase } = await import("@/lib/supabase")
-      const sb = getSupabase()
-      const resultadoMap = new Map<string, ResultadoLicitacao[]>()
-      for (const m of data) {
-        const { data: items, error } = await sb
-          .from("resultados_licitacoes")
-          .select("*")
-          .eq("monitoramento_id", m.id)
-          .order("data_publicacao", { ascending: false })
-          .limit(100)
-        if (error) throw error
-        if (items) resultadoMap.set(m.id, items)
+      const data = await res.json()
+      setMonitoramentos(data.monitoramentos ?? [])
+      setActiveTab((current) =>
+        current && data.monitoramentos?.some((m: Monitoramento) => m.id === current)
+          ? current
+          : data.monitoramentos?.[0]?.id ?? null
+      )
+      const mapa = new Map<string, ResultadoLicitacao[]>()
+      for (const m of data.monitoramentos ?? []) {
+        if (data.resultados?.[m.id]) {
+          mapa.set(m.id, data.resultados[m.id])
+        }
       }
-      setResultados(resultadoMap)
+      setResultados(mapa)
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Erro ao carregar monitoramentos.")
     } finally {
@@ -46,22 +42,22 @@ export default function MonitoramentosPage() {
   }, [])
 
   useEffect(() => {
-    // Busca inicial da tela; a função já isola loading, erro e atualização dos dados.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarDados()
-  }, [carregarDados])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function marcarLida(id: string) {
     setErro("")
     setMarcandoId(id)
     try {
-      const { getSupabase } = await import("@/lib/supabase")
-      const { error } = await getSupabase()
-        .from("resultados_licitacoes")
-        .update({ notificado: true })
-        .eq("id", id)
-      if (error) throw error
-      carregarDados()
+      // Atualiza via API monitor PATCH
+      const res = await fetch(`/api/monitor/resultados/marcar-lida`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      if (!res.ok) throw new Error("Erro ao marcar como lida.")
+      await carregarDados()
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Erro ao marcar resultado como lido.")
     } finally {

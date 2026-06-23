@@ -1,6 +1,7 @@
 -- Tabela de monitoramentos (filtros salvos pelo usuario)
 create table monitoramentos (
   id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
   nome text not null,
   palavras_chave text[],        -- palavras para buscar no objeto da compra
   uf text,                      -- filtro por estado
@@ -39,7 +40,50 @@ create table notificacoes (
 );
 
 -- Indices para busca eficiente
+create index idx_monitoramentos_user on monitoramentos(user_id);
 create index idx_resultados_monitoramento on resultados_licitacoes(monitoramento_id);
 create index idx_resultados_notificado on resultados_licitacoes(notificado) where notificado = false;
 create index idx_notificacoes_lida on notificacoes(lida) where lida = false;
 create index idx_resultados_data on resultados_licitacoes(data_publicacao desc);
+
+-- RLS (Row Level Security) - cada usuario ve seus proprios dados
+alter table monitoramentos enable row level security;
+alter table resultados_licitacoes enable row level security;
+alter table notificacoes enable row level security;
+
+create policy "Usuarios podem ver seus monitoramentos"
+  on monitoramentos for select
+  using (auth.uid() = user_id);
+
+create policy "Usuarios podem criar seus monitoramentos"
+  on monitoramentos for insert
+  with check (auth.uid() = user_id);
+
+create policy "Usuarios podem editar seus monitoramentos"
+  on monitoramentos for update
+  using (auth.uid() = user_id);
+
+create policy "Usuarios podem excluir seus monitoramentos"
+  on monitoramentos for delete
+  using (auth.uid() = user_id);
+
+create policy "Usuarios veem resultados dos seus monitoramentos"
+  on resultados_licitacoes for select
+  using (
+    exists (
+      select 1 from monitoramentos
+      where monitoramentos.id = resultados_licitacoes.monitoramento_id
+      and monitoramentos.user_id = auth.uid()
+    )
+  );
+
+create policy "Usuarios veem notificacoes dos seus resultados"
+  on notificacoes for select
+  using (
+    exists (
+      select 1 from resultados_licitacoes
+      join monitoramentos on monitoramentos.id = resultados_licitacoes.monitoramento_id
+      where notificacoes.resultado_id = resultados_licitacoes.id
+      and monitoramentos.user_id = auth.uid()
+    )
+  );
