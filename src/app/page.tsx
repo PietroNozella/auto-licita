@@ -158,7 +158,6 @@ export default function Dashboard() {
             <FileSearch className="h-6 w-6 text-blue-600" aria-hidden="true" />
             <div>
               <h1 className="text-xl font-bold text-zinc-800">Automação de Licitações</h1>
-              <p className="text-xs text-zinc-500">PNCP - Portal Nacional de Contratações Públicas</p>
             </div>
           </div>
           <div className="hidden md:block">
@@ -207,7 +206,7 @@ export default function Dashboard() {
         <section id="buscar" className="scroll-mt-20 bg-white rounded-xl border border-zinc-200 p-4">
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Buscar licitações</h2>
-            <p className="text-sm text-zinc-500 mt-1">Consulte publicações do PNCP por período, modalidade, UF ou órgão.</p>
+            <p className="text-sm text-zinc-500 mt-1">Consulte publicações por período, modalidade, UF ou órgão.</p>
           </div>
           <SearchForm onSearch={handleSearch} loading={loading} initial={buscaInicial ?? undefined} />
         </section>

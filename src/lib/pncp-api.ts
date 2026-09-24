@@ -26,7 +26,7 @@ async function fetchFromPncp<T>(path: string, params: Record<string, string | nu
       }
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(`Erro na PNCP API: ${res.status} - ${text || res.statusText}`)
+        throw new Error(`Erro na fonte de dados: ${res.status} - ${text || res.statusText}`)
       }
       return res.json()
     } catch (error) {

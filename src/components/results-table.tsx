@@ -42,7 +42,7 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
           {hasSearched ? "Nenhuma licitação encontrada" : "Faça uma busca para listar licitações"}
         </p>
         <p className="text-sm text-zinc-500 mt-1">
-          {hasSearched ? "Tente ajustar os filtros da busca" : "Use palavra-chave, período e filtros para consultar o PNCP"}
+          {hasSearched ? "Tente ajustar os filtros da busca" : "Use palavra-chave, período e filtros para consultar as licitações"}
         </p>
       </div>
     )
@@ -55,7 +55,7 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
           Exibindo <span className="font-medium text-zinc-700">{startItem}-{endItem}</span> de{" "}
           <span className="font-medium text-zinc-700">{count}</span> licitação{count !== 1 ? "ões" : ""}
           {totalRegistros != null && totalRegistros > data.length && (
-            <span className="text-zinc-500"> (total na PNCP: {totalRegistros}; exibindo até {data.length})</span>
+            <span className="text-zinc-500"> (total geral: {totalRegistros}; exibindo até {data.length})</span>
           )}
         </p>
         {totalPages > 1 && (
