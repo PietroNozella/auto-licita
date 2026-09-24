@@ -40,7 +40,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
-          <h1 className="text-xl font-bold text-zinc-800">Automação de Licitações</h1>
+          <h1 className="text-xl font-bold text-zinc-800">Afero</h1>
           <p className="text-sm text-zinc-500 mt-1">Faça login para continuar</p>
         </div>
 

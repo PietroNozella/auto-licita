@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Automação de Licitações",
-  description: "Dashboard para busca e monitoramento de licitações públicas",
+  title: "Afero",
+  description: "Afero — busca e monitoramento de licitações públicas",
 };
 
 export default function RootLayout({

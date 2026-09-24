@@ -55,7 +55,8 @@ export default function CadastroPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
-          <h1 className="text-xl font-bold text-zinc-800">Criar Conta</h1>
+          <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Afero</p>
+          <h1 className="text-xl font-bold text-zinc-800 mt-1">Criar Conta</h1>
           <p className="text-sm text-zinc-500 mt-1">Cadastre-se para usar o dashboard</p>
         </div>
 

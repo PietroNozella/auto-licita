@@ -157,7 +157,8 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <FileSearch className="h-6 w-6 text-blue-600" aria-hidden="true" />
             <div>
-              <h1 className="text-xl font-bold text-zinc-800">Automação de Licitações</h1>
+              <h1 className="text-xl font-bold text-zinc-800">Afero</h1>
+              <p className="text-xs text-zinc-500">Busca e monitoramento de licitações</p>
             </div>
           </div>
           <div className="hidden md:block">
