@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { AppNav } from "@/components/app-nav"
 import { SearchForm } from "@/components/search-form"
 import { ResultsTable } from "@/components/results-table"
 import { ExportButton } from "@/components/export-button"
@@ -156,9 +157,12 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <FileSearch className="h-6 w-6 text-blue-600" aria-hidden="true" />
             <div>
-              <h1 className="text-lg font-bold text-zinc-800">Automação de Licitações</h1>
-              <p className="text-xs text-zinc-400">PNCP - Portal Nacional de Contratações Públicas</p>
+              <h1 className="text-xl font-bold text-zinc-800">Automação de Licitações</h1>
+              <p className="text-xs text-zinc-500">PNCP - Portal Nacional de Contratações Públicas</p>
             </div>
+          </div>
+          <div className="hidden md:block">
+            <AppNav />
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -174,11 +178,11 @@ export default function Dashboard() {
 
             {user && (
               <div className="flex items-center gap-2 pl-3 border-l border-zinc-200">
-                <User className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+                <User className="h-4 w-4 text-zinc-500" aria-hidden="true" />
                 <span className="text-sm text-zinc-500 hidden sm:inline">{user.email}</span>
                 <button
                   onClick={logout}
-                  className="p-1.5 text-zinc-400 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
+                  className="p-1.5 text-zinc-500 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
                   aria-label="Sair"
                 >
                   <LogOut className="h-4 w-4" />
@@ -187,10 +191,20 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+        <div className="border-t border-zinc-100 px-4 py-2 md:hidden">
+          <AppNav />
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        <section className="bg-white rounded-xl border border-zinc-200 p-4">
+        <nav aria-label="Seções do dashboard" className="sticky top-0 z-10 -mx-4 bg-zinc-50/95 px-4 py-2 backdrop-blur">
+          <div className="flex gap-2">
+            <a href="#buscar" className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 hover:border-blue-200 hover:text-blue-700">Buscar</a>
+            <a href="#resultados" className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 hover:border-blue-200 hover:text-blue-700">Resultados</a>
+            <a href="#monitores" className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 hover:border-blue-200 hover:text-blue-700">Monitoramentos</a>
+          </div>
+        </nav>
+        <section id="buscar" className="scroll-mt-20 bg-white rounded-xl border border-zinc-200 p-4">
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Buscar licitações</h2>
             <p className="text-sm text-zinc-500 mt-1">Consulte publicações do PNCP por período, modalidade, UF ou órgão.</p>
@@ -204,7 +218,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <section className="bg-white rounded-xl border border-zinc-200 p-4">
+        <section id="resultados" className="scroll-mt-20 bg-white rounded-xl border border-zinc-200 p-4">
           <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Licitações encontradas</h2>
@@ -236,7 +250,7 @@ export default function Dashboard() {
           <ResultsTable key={searchVersion} data={results} total={total} totalRegistros={totalRegistros ?? undefined} hasSearched={hasSearched} pageSize={8} />
         </section>
 
-        <section className="bg-white rounded-xl border border-zinc-200 p-4">
+        <section id="monitores" className="scroll-mt-20 bg-white rounded-xl border border-zinc-200 p-4">
           <MonitorCard monitoramentos={monitoramentos} onCreated={() => {
             carregarMonitoramentos()
             carregarNotificacoes()

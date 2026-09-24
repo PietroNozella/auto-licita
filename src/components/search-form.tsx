@@ -70,7 +70,7 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
       <div className="grid gap-2 lg:grid-cols-[1fr_auto_auto]">
         <div className="relative">
           <label htmlFor="search-query" className="sr-only">Buscar licitações</label>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden="true" />
           <input
             id="search-query"
             type="text"

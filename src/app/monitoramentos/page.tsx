@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
+import { AppNav } from "@/components/app-nav"
 import type { Monitoramento, ResultadoLicitacao } from "@/types/pncp"
 import { formatCurrency, formatDateShort } from "@/lib/utils"
 import { ArrowLeft, Eye, EyeOff } from "lucide-react"
@@ -73,10 +74,18 @@ export default function MonitoramentosPage() {
     <div className="min-h-screen bg-zinc-50">
       <header className="bg-white border-b border-zinc-200">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/" aria-label="Voltar para o dashboard" className="text-zinc-400 hover:text-zinc-600 transition-colors">
+          <Link href="/" aria-label="Voltar para o dashboard" className="text-zinc-500 hover:text-zinc-600 transition-colors">
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Link>
-          <h1 className="text-lg font-bold text-zinc-800">Monitoramentos</h1>
+          <h1 className="text-xl font-bold text-zinc-800">Monitoramentos</h1>
+          <div className="ml-auto hidden md:block">
+            <AppNav />
+          </div>
+        </div>
+        <div className="border-t border-zinc-100 px-4 py-2 md:hidden">
+          <div className="max-w-5xl mx-auto">
+            <AppNav />
+          </div>
         </div>
       </header>
 
@@ -88,12 +97,12 @@ export default function MonitoramentosPage() {
         )}
 
         {loading ? (
-          <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center text-sm text-zinc-400">
+          <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center text-sm text-zinc-500">
             Carregando monitoramentos...
           </div>
         ) : monitoramentos.length === 0 ? (
           <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
-            <p className="text-zinc-400">Nenhum monitoramento criado ainda.</p>
+            <p className="text-zinc-500">Nenhum monitoramento criado ainda.</p>
             <Link href="/" className="text-blue-600 text-sm hover:underline mt-2 inline-block">
               Criar no dashboard
             </Link>
@@ -122,7 +131,7 @@ export default function MonitoramentosPage() {
                       <EyeOff className="h-3.5 w-3.5 text-zinc-300 shrink-0" aria-hidden="true" />
                     )}
                   </div>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[10px] text-zinc-500">
                     {resultados.get(m.id)?.length ?? 0} resultados
                   </span>
                 </button>
@@ -132,7 +141,7 @@ export default function MonitoramentosPage() {
             <div className="lg:col-span-3">
               {activeResults.length === 0 ? (
                 <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
-                  <p className="text-zinc-400">Nenhum resultado encontrado para este monitoramento.</p>
+                  <p className="text-zinc-500">Nenhum resultado encontrado para este monitoramento.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -147,7 +156,7 @@ export default function MonitoramentosPage() {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-zinc-800">{r.objeto_compra}</p>
                           <p className="text-xs text-zinc-500 mt-0.5">{r.orgao_nome}</p>
-                          <div className="flex flex-wrap gap-2 mt-2 text-xs text-zinc-400">
+                          <div className="flex flex-wrap gap-2 mt-2 text-xs text-zinc-500">
                             <span>{r.uf}</span>
                             <span>{r.modalidade_nome}</span>
                             {r.valor_total_estimado != null && (

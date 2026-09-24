@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { BellRing, CalendarDays, Clock, Plus, Trash2 } from "lucide-react"
 import { formatDateShort } from "@/lib/utils"
@@ -20,8 +20,18 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
   const [modalidadeId, setModalidadeId] = useState("")
   const [salvando, setSalvando] = useState(false)
   const [actionId, setActionId] = useState<string | null>(null)
+  const [excluirAlvo, setExcluirAlvo] = useState<Monitoramento | null>(null)
   const [novidades, setNovidades] = useState<Record<string, { texto: string; novos: number }>>({})
   const [erro, setErro] = useState("")
+
+  useEffect(() => {
+    if (!excluirAlvo) return
+    function fecharNoEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setExcluirAlvo(null)
+    }
+    window.addEventListener("keydown", fecharNoEscape)
+    return () => window.removeEventListener("keydown", fecharNoEscape)
+  }, [excluirAlvo])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -54,13 +64,12 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
   }
 
   async function handleDelete(monitoramento: Monitoramento) {
-    const confirmed = window.confirm(`Excluir o monitoramento "${monitoramento.nome}"?`)
-    if (!confirmed) return
     setErro("")
     setActionId(monitoramento.id)
     try {
       const res = await fetch(`/api/monitor?id=${monitoramento.id}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Não foi possível excluir o monitoramento.")
+      setExcluirAlvo(null)
       onCreated()
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Erro ao excluir monitoramento.")
@@ -151,7 +160,7 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
       )}
 
       {showForm && (
-        <form onSubmit={handleCreate} className="grid gap-3 rounded-lg border border-blue-200 bg-blue-50/70 p-4 lg:grid-cols-[1fr_1.5fr_120px_220px_auto] lg:items-end">
+        <form onSubmit={handleCreate} className="grid gap-3 rounded-lg border border-blue-200 bg-blue-50/70 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:items-end">
           <div>
             <label htmlFor="monitor-nome" className="mb-1 block text-xs font-medium text-zinc-500">Nome</label>
             <input
@@ -203,7 +212,7 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
       {monitoramentos.length === 0 && !showForm ? (
         <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-8 text-center">
           <p className="text-sm text-zinc-500">Nenhum monitoramento ativo.</p>
-          <p className="mt-1 text-sm text-zinc-400">Crie um agendamento para receber notificações de novas licitações.</p>
+          <p className="mt-1 text-sm text-zinc-500">Crie um agendamento para receber notificações de novas licitações.</p>
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -221,10 +230,10 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleDelete(m)}
+                  onClick={() => setExcluirAlvo(m)}
                   disabled={actionId === m.id}
                   aria-label={`Excluir monitoramento ${m.nome}`}
-                  className="shrink-0 rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  className="shrink-0 rounded p-1 text-zinc-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -242,8 +251,8 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
                 )}
               </div>
 
-              <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
-                <p className="flex items-center gap-1 text-xs text-zinc-400">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-3">
+                <p className="flex items-center gap-1 text-xs text-zinc-500">
                   <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   {m.ultima_verificacao ? `Verificado em ${formatDateShort(m.ultima_verificacao)}` : "Ainda não verificado"}
                 </p>
@@ -284,6 +293,47 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
               )}
             </article>
           ))}
+        </div>
+      )}
+
+      {excluirAlvo && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setExcluirAlvo(null)
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="excluir-monitor-title"
+            className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
+          >
+            <h3 id="excluir-monitor-title" className="text-lg font-semibold text-zinc-800">
+              Excluir monitoramento
+            </h3>
+            <p className="mt-2 text-sm text-zinc-500">
+              Excluir “{excluirAlvo.nome}”? Os resultados já salvos serão removidos junto.
+            </p>
+            <div className="flex gap-2 mt-6 justify-end">
+              <button
+                type="button"
+                onClick={() => setExcluirAlvo(null)}
+                autoFocus
+                className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(excluirAlvo)}
+                disabled={actionId === excluirAlvo.id}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {actionId === excluirAlvo.id ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -56,7 +56,7 @@ export default function CadastroPage() {
         <div className="text-center mb-8">
           <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
           <h1 className="text-xl font-bold text-zinc-800">Criar Conta</h1>
-          <p className="text-sm text-zinc-400 mt-1">Cadastre-se para usar o dashboard</p>
+          <p className="text-sm text-zinc-500 mt-1">Cadastre-se para usar o dashboard</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
@@ -115,7 +115,7 @@ export default function CadastroPage() {
                 type="button"
                 onClick={() => setMostrarSenha(!mostrarSenha)}
                 aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-zinc-400 hover:text-zinc-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-zinc-500 hover:text-zinc-600"
               >
                 {mostrarSenha
                   ? <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -146,7 +146,7 @@ export default function CadastroPage() {
             {loading ? "Cadastrando..." : "Criar Conta"}
           </button>
 
-          <p className="text-center text-sm text-zinc-400">
+          <p className="text-center text-sm text-zinc-500">
             Já tem conta?{" "}
             <Link href="/login" className="text-blue-600 hover:underline">Fazer login</Link>
           </p>

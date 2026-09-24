@@ -41,7 +41,7 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
         <p className="text-base font-medium text-zinc-600">
           {hasSearched ? "Nenhuma licitação encontrada" : "Faça uma busca para listar licitações"}
         </p>
-        <p className="text-sm text-zinc-400 mt-1">
+        <p className="text-sm text-zinc-500 mt-1">
           {hasSearched ? "Tente ajustar os filtros da busca" : "Use palavra-chave, período e filtros para consultar o PNCP"}
         </p>
       </div>
@@ -55,11 +55,11 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
           Exibindo <span className="font-medium text-zinc-700">{startItem}-{endItem}</span> de{" "}
           <span className="font-medium text-zinc-700">{count}</span> licitação{count !== 1 ? "ões" : ""}
           {totalRegistros != null && totalRegistros > data.length && (
-            <span className="text-zinc-400"> (total na PNCP: {totalRegistros}; exibindo até {data.length})</span>
+            <span className="text-zinc-500"> (total na PNCP: {totalRegistros}; exibindo até {data.length})</span>
           )}
         </p>
         {totalPages > 1 && (
-          <p className="text-xs text-zinc-400">Página {currentPage} de {totalPages}</p>
+          <p className="text-xs text-zinc-500">Página {currentPage} de {totalPages}</p>
         )}
       </div>
 
@@ -87,7 +87,7 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
 
                 <div className="mt-3 flex flex-col gap-1.5 text-sm text-zinc-500 sm:flex-row sm:flex-wrap sm:gap-x-4">
                   <span className="inline-flex items-center gap-1.5">
-                    <Landmark className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+                    <Landmark className="h-4 w-4 text-zinc-500" aria-hidden="true" />
                     {item.orgaoEntidade?.razaoSocial ?? "Órgão não informado"}
                   </span>
                   {item.unidadeOrgao?.municipioNome && (
@@ -99,26 +99,26 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
 
               <div className="grid shrink-0 grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-3 text-sm lg:w-80">
                 <div>
-                  <p className="text-xs text-zinc-400">Valor estimado</p>
+                  <p className="text-xs text-zinc-500">Valor estimado</p>
                   <p className="mt-1 font-mono font-semibold text-zinc-800">{getEstimatedValue(item)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-400">Publicação</p>
+                  <p className="text-xs text-zinc-500">Publicação</p>
                   <p className="mt-1 text-zinc-700">{getDateLabel(item.dataPublicacaoPncp)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-400">Abertura</p>
+                  <p className="text-xs text-zinc-500">Abertura</p>
                   <p className="mt-1 text-zinc-700">{getDateLabel(item.dataAberturaProposta)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-400">Encerramento</p>
+                  <p className="text-xs text-zinc-500">Encerramento</p>
                   <p className="mt-1 text-zinc-700">{getDateLabel(item.dataEncerramentoProposta)}</p>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 flex flex-col gap-3 border-t border-zinc-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+              <div className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
                 <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
                 Atualizado em {item.dataAtualizacao ? formatDate(item.dataAtualizacao) : "data não informada"}
               </div>
