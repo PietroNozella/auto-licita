@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { BellRing, Clock, Plus, Trash2 } from "lucide-react"
+import { BellRing, CalendarDays, Clock, Plus, Trash2 } from "lucide-react"
 import { formatDateShort } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
 import type { Monitoramento } from "@/types/pncp"
@@ -19,6 +19,7 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
   const [modalidadeId, setModalidadeId] = useState("")
   const [salvando, setSalvando] = useState(false)
   const [actionId, setActionId] = useState<string | null>(null)
+  const [novidades, setNovidades] = useState<Record<string, string>>({})
   const [erro, setErro] = useState("")
 
   async function handleCreate(e: React.FormEvent) {
@@ -80,6 +81,29 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
       onCreated()
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Erro ao atualizar monitoramento.")
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleNovidades(m: Monitoramento) {
+    setErro("")
+    setActionId(m.id)
+    try {
+      const res = await fetch("/api/monitor/novidades-hoje", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: m.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível buscar as novidades.")
+      setNovidades((prev) => ({
+        ...prev,
+        [m.id]: data.novos > 0 ? `${data.novos} novidade(s) de hoje` : "Nada novo hoje",
+      }))
+      onCreated()
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Erro ao buscar novidades.")
     } finally {
       setActionId(null)
     }
@@ -211,16 +235,31 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
                   <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   {m.ultima_verificacao ? `Verificado em ${formatDateShort(m.ultima_verificacao)}` : "Ainda não verificado"}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => toggleAtivo(m)}
-                  disabled={actionId === m.id}
-                  aria-label={`${m.ativo ? "Pausar" : "Ativar"} monitoramento ${m.nome}`}
-                  className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-                >
-                  {m.ativo ? "Pausar" : "Ativar"}
-                </button>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleNovidades(m)}
+                    disabled={actionId === m.id}
+                    aria-label={`Buscar novidades de hoje para ${m.nome}`}
+                    className="inline-flex items-center gap-1 rounded-md border border-blue-200 px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                    {actionId === m.id ? "Buscando..." : "Novidades do dia"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleAtivo(m)}
+                    disabled={actionId === m.id}
+                    aria-label={`${m.ativo ? "Pausar" : "Ativar"} monitoramento ${m.nome}`}
+                    className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    {m.ativo ? "Pausar" : "Ativar"}
+                  </button>
+                </div>
               </div>
+              {novidades[m.id] && (
+                <p role="status" className="mt-2 text-xs font-medium text-blue-700">{novidades[m.id]}</p>
+              )}
             </article>
           ))}
         </div>
