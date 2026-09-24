@@ -48,7 +48,8 @@ export default function Dashboard() {
       const res = await fetch("/api/monitor/resultados")
       if (!res.ok) return
       const data = await res.json()
-      const total = Object.values(data.resultados ?? {}).flat().filter((r: any) => !r.notificado).length
+      const resultados = (data.resultados ?? {}) as Record<string, Array<{ notificado?: boolean }>>
+      const total = Object.values(resultados).flat().filter((r) => !r.notificado).length
       setNotificacoesNaoLidas(total)
     } catch {
       // Mantém o dashboard utilizável mesmo se as notificações falharem.

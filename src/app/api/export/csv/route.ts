@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getUserId } from "@/lib/supabase-server"
 import Papa from "papaparse"
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserId()
+    if (!userId) {
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
+    }
     const body = await request.json()
     const { headers, rows, filename } = body
 

@@ -40,7 +40,7 @@ async function fetchFromPncp<T>(path: string, params: Record<string, string | nu
   throw new Error("Todas as tentativas falharam")
 }
 
-async function buscarTodasModalidades<T>(
+async function buscarTodasModalidades(
   path: string,
   params: PncpSearchParams
 ): Promise<PaginaRetornoRecuperarCompraPublicacaoDTO> {

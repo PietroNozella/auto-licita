@@ -42,9 +42,11 @@ export default function MonitoramentosPage() {
   }, [])
 
   useEffect(() => {
-    carregarDados()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    // Adia a carga inicial para fora do corpo do effect e evita setState síncrono no mount.
+    queueMicrotask(() => {
+      void carregarDados()
+    })
+  }, [carregarDados])
 
   async function marcarLida(id: string) {
     setErro("")

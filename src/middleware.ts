@@ -4,11 +4,12 @@ import { createServerClient } from "@supabase/ssr"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rotas públicas
+  // Rotas públicas (o cron se autentica via x-vercel-cron ou CRON_SECRET na rota)
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/cadastro") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/cron/verificar") ||
     pathname.startsWith("/_next") ||
     pathname.includes(".")
   ) {
