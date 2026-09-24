@@ -150,22 +150,19 @@ export async function buscarDetalheContratacao(
 }
 
 export const MODALIDADES = [
-  { id: 1, nome: "Dispensa Eletrônica" },
-  { id: 2, nome: "Dispensa" },
-  { id: 3, nome: "Inexigibilidade" },
-  { id: 4, nome: "Leilão" },
-  { id: 5, nome: "Concorrência Eletrônica" },
-  { id: 6, nome: "Concorrência Presencial" },
-  { id: 7, nome: "Pregão Eletrônico" },
-  { id: 8, nome: "Pregão Presencial" },
-  { id: 9, nome: "Concurso" },
-  { id: 10, nome: "Chamamento Público" },
+  { id: 1, nome: "Leilão - Eletrônico" },
+  { id: 2, nome: "Diálogo Competitivo" },
+  { id: 3, nome: "Concurso" },
+  { id: 4, nome: "Concorrência - Eletrônica" },
+  { id: 5, nome: "Concorrência - Presencial" },
+  { id: 6, nome: "Pregão - Eletrônico" },
+  { id: 7, nome: "Pregão - Presencial" },
+  { id: 8, nome: "Dispensa de Licitação" },
+  { id: 9, nome: "Inexigibilidade" },
+  { id: 10, nome: "Manifestação de Interesse" },
   { id: 11, nome: "Pré-qualificação" },
-  { id: 12, nome: "Proposta" },
-  { id: 13, nome: "Credenciamento" },
-  { id: 14, nome: "Diálogo Competitivo" },
-  { id: 15, nome: "Sistema de Registro de Preços" },
-  { id: 16, nome: "Cotação Eletrônica" },
+  { id: 12, nome: "Credenciamento" },
+  { id: 13, nome: "Leilão - Presencial" },
 ]
 
 export const UF_LIST = [
