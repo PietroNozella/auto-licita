@@ -8,6 +8,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Landmark, MapPin
 interface ResultsTableProps {
   data: RecuperarCompraPublicacaoDTO[]
   total?: number
+  totalRegistros?: number
   hasSearched?: boolean
   pageSize?: number
 }
@@ -25,13 +26,14 @@ function getPageItems(data: RecuperarCompraPublicacaoDTO[], page: number, pageSi
   return data.slice(start, start + pageSize)
 }
 
-export function ResultsTable({ data, total, hasSearched = true, pageSize = 8 }: ResultsTableProps) {
+export function ResultsTable({ data, total, totalRegistros, hasSearched = true, pageSize = 8 }: ResultsTableProps) {
   const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize))
   const currentPage = Math.min(page, totalPages)
   const pageItems = useMemo(() => getPageItems(data, currentPage, pageSize), [data, currentPage, pageSize])
   const startItem = data.length === 0 ? 0 : (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, data.length)
+  const count = total ?? data.length
 
   if (data.length === 0) {
     return (
@@ -51,7 +53,10 @@ export function ResultsTable({ data, total, hasSearched = true, pageSize = 8 }: 
       <div className="flex flex-col gap-2 border-b border-zinc-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-zinc-500">
           Exibindo <span className="font-medium text-zinc-700">{startItem}-{endItem}</span> de{" "}
-          <span className="font-medium text-zinc-700">{total ?? data.length}</span> licitação{(total ?? data.length) !== 1 ? "ões" : ""}
+          <span className="font-medium text-zinc-700">{count}</span> licitação{count !== 1 ? "ões" : ""}
+          {totalRegistros != null && totalRegistros > data.length && (
+            <span className="text-zinc-400"> (total na PNCP: {totalRegistros}; exibindo até {data.length})</span>
+          )}
         </p>
         {totalPages > 1 && (
           <p className="text-xs text-zinc-400">Página {currentPage} de {totalPages}</p>

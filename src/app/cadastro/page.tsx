@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { FileSearch, AlertCircle, CheckCircle } from "lucide-react"
+import { FileSearch, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { traduzirErroAuth } from "@/lib/auth-erros"
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -11,6 +12,7 @@ export default function CadastroPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
@@ -37,7 +39,7 @@ export default function CadastroPage() {
         body: JSON.stringify({ email, password, name }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Erro ao cadastrar")
+      if (!res.ok) throw new Error(traduzirErroAuth(data.error ?? "Erro ao cadastrar"))
 
       setSuccess("Conta criada com sucesso! Redirecionando para o login...")
       setTimeout(() => router.push("/login"), 1500)
@@ -98,16 +100,28 @@ export default function CadastroPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-zinc-600 mb-1">Senha</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              required
-              minLength={6}
-              className="w-full px-3 py-2.5 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={mostrarSenha ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                required
+                minLength={6}
+                className="w-full px-3 py-2.5 pr-11 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha(!mostrarSenha)}
+                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-zinc-400 hover:text-zinc-600"
+              >
+                {mostrarSenha
+                  ? <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  : <Eye className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </div>
           </div>
 
           <div>

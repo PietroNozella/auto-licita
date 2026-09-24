@@ -1,11 +1,13 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { SearchForm } from "@/components/search-form"
 import { ResultsTable } from "@/components/results-table"
 import { ExportButton } from "@/components/export-button"
 import { MonitorCard } from "@/components/monitor-card"
 import { NotificationBadge } from "@/components/notification-badge"
+import { MODALIDADES } from "@/lib/pncp-api"
 import type { RecuperarCompraPublicacaoDTO, Monitoramento } from "@/types/pncp"
 import { useAuth } from "@/components/auth-provider"
 import { Bell, FileSearch, LogOut, User } from "lucide-react"
@@ -19,6 +21,27 @@ interface SearchParamsState {
   cnpj: string
 }
 
+function comTracos(yyyymmdd: string): string {
+  return yyyymmdd.length === 8
+    ? `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
+    : yyyymmdd
+}
+
+// Restaura os campos do formulário a partir da URL (volta de /monitoramentos).
+function lerBuscaDaUrl(): SearchParamsState | null {
+  if (typeof window === "undefined") return null
+  const sp = new URLSearchParams(window.location.search)
+  if (!sp.has("q") && !sp.has("dataInicial")) return null
+  return {
+    query: sp.get("q") ?? "",
+    dataInicial: sp.get("dataInicial") ?? "",
+    dataFinal: sp.get("dataFinal") ?? "",
+    modalidade: sp.get("modalidade") ?? "",
+    uf: sp.get("uf") ?? "",
+    cnpj: sp.get("cnpj") ?? "",
+  }
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const [results, setResults] = useState<RecuperarCompraPublicacaoDTO[]>([])
@@ -29,6 +52,9 @@ export default function Dashboard() {
   const [erro, setErro] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
   const [searchVersion, setSearchVersion] = useState(0)
+  const [ultimaBusca, setUltimaBusca] = useState<SearchParamsState | null>(null)
+  const [totalRegistros, setTotalRegistros] = useState<number | null>(null)
+  const [buscaInicial] = useState<SearchParamsState | null>(lerBuscaDaUrl)
   const mounted = useRef(false)
 
   const carregarMonitoramentos = useCallback(async () => {
@@ -67,6 +93,7 @@ export default function Dashboard() {
     setLoading(true)
     setErro("")
     setHasSearched(true)
+    setUltimaBusca(params)
     setSearchVersion((version) => version + 1)
     try {
       const searchParams = new URLSearchParams()
@@ -97,14 +124,30 @@ export default function Dashboard() {
 
       setResults(items)
       setTotal(items.length)
+      setTotalRegistros(typeof data.totalRegistros === "number" ? data.totalRegistros : items.length)
+
+      // Espelha a busca na URL para preservar os campos ao voltar de /monitoramentos.
+      const urlParams = new URLSearchParams()
+      if (params.query) urlParams.set("q", params.query)
+      if (params.dataInicial) urlParams.set("dataInicial", comTracos(params.dataInicial))
+      if (params.dataFinal) urlParams.set("dataFinal", comTracos(params.dataFinal))
+      if (params.modalidade) urlParams.set("modalidade", params.modalidade)
+      if (params.uf) urlParams.set("uf", params.uf)
+      if (params.cnpj) urlParams.set("cnpj", params.cnpj)
+      window.history.replaceState(null, "", `${window.location.pathname}?${urlParams.toString()}`)
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Erro ao buscar licitações")
       setResults([])
       setTotal(0)
+      setTotalRegistros(null)
     } finally {
       setLoading(false)
     }
   }
+
+  const modalidadeNome = ultimaBusca?.modalidade
+    ? MODALIDADES.find((m) => String(m.id) === ultimaBusca.modalidade)?.nome ?? ultimaBusca.modalidade
+    : ""
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -118,16 +161,16 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={carregarNotificacoes}
-              aria-label="Atualizar notificações"
+            <Link
+              href="/monitoramentos"
+              aria-label={notificacoesNaoLidas > 0 ? `Ver ${notificacoesNaoLidas} notificações` : "Ver monitoramentos"}
               className="relative p-2 text-zinc-500 hover:text-zinc-700 transition-colors"
             >
               <Bell className="h-5 w-5" aria-hidden="true" />
               <span className="absolute -top-0.5 -right-0.5">
                 <NotificationBadge count={notificacoesNaoLidas} />
               </span>
-            </button>
+            </Link>
 
             {user && (
               <div className="flex items-center gap-2 pl-3 border-l border-zinc-200">
@@ -152,7 +195,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Buscar licitações</h2>
             <p className="text-sm text-zinc-500 mt-1">Consulte publicações do PNCP por período, modalidade, UF ou órgão.</p>
           </div>
-          <SearchForm onSearch={handleSearch} loading={loading} />
+          <SearchForm onSearch={handleSearch} loading={loading} initial={buscaInicial ?? undefined} />
         </section>
 
         {erro && (
@@ -166,10 +209,31 @@ export default function Dashboard() {
             <div>
               <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Licitações encontradas</h2>
               <p className="text-sm text-zinc-500 mt-1">Resultados organizados para comparação rápida e ação direta.</p>
+              {ultimaBusca && hasSearched && (
+                <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Filtros aplicados">
+                  {ultimaBusca.query && (
+                    <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">“{ultimaBusca.query}”</span>
+                  )}
+                  {ultimaBusca.dataInicial && ultimaBusca.dataFinal && (
+                    <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">
+                      {comTracos(ultimaBusca.dataInicial)} a {comTracos(ultimaBusca.dataFinal)}
+                    </span>
+                  )}
+                  {modalidadeNome && (
+                    <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">{modalidadeNome}</span>
+                  )}
+                  {ultimaBusca.uf && (
+                    <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">{ultimaBusca.uf}</span>
+                  )}
+                  {ultimaBusca.cnpj && (
+                    <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">CNPJ {ultimaBusca.cnpj}</span>
+                  )}
+                </div>
+              )}
             </div>
             <ExportButton data={results} />
           </div>
-          <ResultsTable key={searchVersion} data={results} total={total} hasSearched={hasSearched} pageSize={8} />
+          <ResultsTable key={searchVersion} data={results} total={total} totalRegistros={totalRegistros ?? undefined} hasSearched={hasSearched} pageSize={8} />
         </section>
 
         <section className="bg-white rounded-xl border border-zinc-200 p-4">

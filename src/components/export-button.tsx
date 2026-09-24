@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Download, FileSpreadsheet, Check, Copy } from "lucide-react"
 import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
 
@@ -48,37 +48,61 @@ function formatRow(item: RecuperarCompraPublicacaoDTO): Record<string, string | 
 
 export function ExportButton({ data }: ExportButtonProps) {
   const [copied, setCopied] = useState(false)
+  const [csvOk, setCsvOk] = useState(false)
+  const [exportandoCSV, setExportandoCSV] = useState(false)
   const [showSheetModal, setShowSheetModal] = useState(false)
   const [sheetUrl, setSheetUrl] = useState("")
   const [sheetName, setSheetName] = useState("Licitações")
   const [exporting, setExporting] = useState(false)
   const [erro, setErro] = useState("")
 
+  useEffect(() => {
+    if (!showSheetModal) return
+    function fecharNoEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowSheetModal(false)
+    }
+    window.addEventListener("keydown", fecharNoEscape)
+    return () => window.removeEventListener("keydown", fecharNoEscape)
+  }, [showSheetModal])
+
   if (data.length === 0) return null
+
+  // Aceita ID puro ou URL completa da planilha.
+  function extrairSpreadsheetId(valor: string): string {
+    const m = valor.match(/\/d\/([a-zA-Z0-9-_]+)/)
+    return m ? m[1] : valor.trim()
+  }
 
   async function exportCSV() {
     setErro("")
-    const rows = data.map(formatRow)
-    const res = await fetch("/api/export/csv", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        headers: EXPORT_HEADERS,
-        rows,
-        filename: `licitacoes-${new Date().toISOString().split("T")[0]}.csv`,
-      }),
-    })
-    if (!res.ok) {
+    setCsvOk(false)
+    setExportandoCSV(true)
+    try {
+      const rows = data.map(formatRow)
+      const res = await fetch("/api/export/csv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          headers: EXPORT_HEADERS,
+          rows,
+          filename: `licitacoes-${new Date().toISOString().split("T")[0]}.csv`,
+        }),
+      })
+      if (!res.ok) throw new Error("Não foi possível gerar o CSV.")
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `licitacoes-${new Date().toISOString().split("T")[0]}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      setCsvOk(true)
+      setTimeout(() => setCsvOk(false), 2000)
+    } catch {
       setErro("Não foi possível gerar o CSV.")
-      return
+    } finally {
+      setExportandoCSV(false)
     }
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `licitacoes-${new Date().toISOString().split("T")[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   async function copyJSON() {
@@ -94,7 +118,8 @@ export function ExportButton({ data }: ExportButtonProps) {
   }
 
   async function exportSheets() {
-    if (!sheetUrl) return
+    const spreadsheetId = extrairSpreadsheetId(sheetUrl)
+    if (!spreadsheetId) return
     setErro("")
     setExporting(true)
     try {
@@ -103,7 +128,7 @@ export function ExportButton({ data }: ExportButtonProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          spreadsheetId: sheetUrl,
+          spreadsheetId,
           sheetName,
           headers: EXPORT_HEADERS,
           rows,
@@ -126,10 +151,13 @@ export function ExportButton({ data }: ExportButtonProps) {
         <button
           type="button"
           onClick={exportCSV}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-zinc-300 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+          disabled={exportandoCSV}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-zinc-300 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50"
         >
-          <Download className="h-3.5 w-3.5" aria-hidden="true" />
-          CSV
+          {csvOk
+            ? <Check className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
+            : <Download className="h-3.5 w-3.5" aria-hidden="true" />}
+          {exportandoCSV ? "Gerando..." : csvOk ? "Baixado" : "CSV"}
         </button>
         <button
           type="button"
@@ -152,7 +180,12 @@ export function ExportButton({ data }: ExportButtonProps) {
       {erro && <p role="alert" className="mt-2 text-sm text-red-600">{erro}</p>}
 
       {showSheetModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowSheetModal(false)
+          }}
+        >
           <div
             role="dialog"
             aria-modal="true"
@@ -171,6 +204,7 @@ export function ExportButton({ data }: ExportButtonProps) {
                   value={sheetUrl}
                   onChange={(e) => setSheetUrl(e.target.value)}
                   placeholder="https://docs.google.com/spreadsheets/d/..."
+                  autoFocus
                   className="w-full px-3 py-2 rounded-md border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

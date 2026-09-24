@@ -15,20 +15,43 @@ interface SearchFormProps {
     cnpj: string
   }) => void
   loading?: boolean
+  initial?: {
+    query: string
+    dataInicial: string
+    dataFinal: string
+    modalidade: string
+    uf: string
+    cnpj: string
+  }
 }
 
-export function SearchForm({ onSearch, loading }: SearchFormProps) {
-  const [query, setQuery] = useState("")
+function paraInputData(yyyymmdd: string): string {
+  if (/^\d{8}$/.test(yyyymmdd)) {
+    return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
+  }
+  return yyyymmdd
+}
+
+export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
+  const [query, setQuery] = useState(initial?.query ?? "")
   const [dataInicial, setDataInicial] = useState(() => {
+    if (initial?.dataInicial) return paraInputData(initial.dataInicial)
     const d = new Date()
     d.setDate(d.getDate() - 30)
     return d.toISOString().split("T")[0]
   })
-  const [dataFinal, setDataFinal] = useState(() => new Date().toISOString().split("T")[0])
-  const [modalidade, setModalidade] = useState("")
-  const [uf, setUf] = useState("")
-  const [cnpj, setCnpj] = useState("")
-  const [showFilters, setShowFilters] = useState(false)
+  const [dataFinal, setDataFinal] = useState(() => {
+    if (initial?.dataFinal) return paraInputData(initial.dataFinal)
+    return new Date().toISOString().split("T")[0]
+  })
+  const [modalidade, setModalidade] = useState(initial?.modalidade ?? "")
+  const [uf, setUf] = useState(initial?.uf ?? "")
+  const [cnpj, setCnpj] = useState(initial?.cnpj ?? "")
+  const [showFilters, setShowFilters] = useState(() =>
+    Boolean(initial?.modalidade || initial?.uf || initial?.cnpj)
+  )
+
+  const filtrosAtivos = [modalidade, uf, cnpj].filter(Boolean).length
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -77,7 +100,7 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
           )}
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-          Filtros
+          Filtros{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
         </button>
       </div>
 

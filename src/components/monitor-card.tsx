@@ -20,7 +20,7 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
   const [modalidadeId, setModalidadeId] = useState("")
   const [salvando, setSalvando] = useState(false)
   const [actionId, setActionId] = useState<string | null>(null)
-  const [novidades, setNovidades] = useState<Record<string, string>>({})
+  const [novidades, setNovidades] = useState<Record<string, { texto: string; novos: number }>>({})
   const [erro, setErro] = useState("")
 
   async function handleCreate(e: React.FormEvent) {
@@ -100,7 +100,10 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
       if (!res.ok) throw new Error(data.error ?? "Não foi possível buscar as novidades.")
       setNovidades((prev) => ({
         ...prev,
-        [m.id]: data.novos > 0 ? `${data.novos} novidade(s) de hoje` : "Nada novo hoje",
+        [m.id]: {
+          texto: data.novos > 0 ? `${data.novos} novidade(s) de hoje` : "Nada novo hoje",
+          novos: data.novos ?? 0,
+        },
       }))
       onCreated()
     } catch (error) {
@@ -116,7 +119,7 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
         <div>
           <div className="flex items-center gap-2">
             <BellRing className="h-5 w-5 text-blue-600" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Agendar monitoramento</h2>
+            <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Monitoramentos</h2>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
             Crie alertas por palavras-chave para acompanhar novas publicações automaticamente.
@@ -267,7 +270,17 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
                 </div>
               </div>
               {novidades[m.id] && (
-                <p role="status" className="mt-2 text-xs font-medium text-blue-700">{novidades[m.id]}</p>
+                <p role="status" className="mt-2 text-xs font-medium text-blue-700">
+                  {novidades[m.id].texto}
+                  {novidades[m.id].novos > 0 && (
+                    <>
+                      {" · "}
+                      <Link href="/monitoramentos" className="underline hover:text-blue-800">
+                        ver em Monitoramentos
+                      </Link>
+                    </>
+                  )}
+                </p>
               )}
             </article>
           ))}
