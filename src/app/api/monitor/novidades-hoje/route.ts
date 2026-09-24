@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseServer } from "@/lib/supabase-server"
 import { buscarNovosDoMonitor, hojeYyyymmdd, persistirResultados } from "@/lib/monitor-check"
 
-// Verificação manual do dia: busca no PNCP só o que publicou hoje para um
+// Verificação manual do dia: busca só o que publicou hoje para um
 // monitoramento do usuário e persiste os novos (idempotente via dedup).
 export async function POST(request: NextRequest) {
   try {
