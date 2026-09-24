@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase"
 import { buscarContratacoesPorPublicacao } from "@/lib/pncp-api"
+import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
 
 export const dynamic = "force-dynamic"
+
+const TAMANHO_PAGINA = 50
+const MAX_PAGINAS = 5
 
 export async function GET(request: Request) {
   try {
@@ -36,34 +40,49 @@ export async function GET(request: Request) {
       const dataInicial = dataInicio.toISOString().split("T")[0].replace(/-/g, "")
       const dataFinal = new Date().toISOString().split("T")[0].replace(/-/g, "")
 
-      const response = await buscarContratacoesPorPublicacao({
-        dataInicial,
-        dataFinal,
-        codigoModalidadeContratacao: monitor.modalidade_id,
-        uf: monitor.uf ?? undefined,
-        cnpj: monitor.cnpj_orgao ?? undefined,
-        pagina: 1,
-        tamanhoPagina: 50,
-      })
+      const itens: RecuperarCompraPublicacaoDTO[] = []
+      for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
+        const response = await buscarContratacoesPorPublicacao({
+          dataInicial,
+          dataFinal,
+          codigoModalidadeContratacao: monitor.modalidade_id,
+          uf: monitor.uf ?? undefined,
+          cnpj: monitor.cnpj_orgao ?? undefined,
+          pagina,
+          tamanhoPagina: TAMANHO_PAGINA,
+        })
+        const dados = response.data ?? []
+        itens.push(...dados)
+        if (dados.length < TAMANHO_PAGINA) break
+      }
 
-      if (!response.data || response.data.length === 0) continue
+      if (itens.length === 0) continue
 
       // Filtra por palavras-chave
       const palavrasChave = monitor.palavras_chave ?? []
       const filtrados = palavrasChave.length > 0
-        ? response.data.filter((item) => {
+        ? itens.filter((item) => {
             const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""}`.toLowerCase()
             return palavrasChave.some((palavra: string) => texto.includes(palavra.toLowerCase()))
           })
-        : response.data
+        : itens
 
       if (filtrados.length === 0) continue
 
-      // Insere no banco (ignora duplicatas)
-      for (const item of filtrados) {
+      // Já registrados para este monitoramento (1 query, evita roubar resultado de outro monitor)
+      const { data: existentes } = await supabase
+        .from("resultados_licitacoes")
+        .select("numero_controle_pncp")
+        .eq("monitoramento_id", monitor.id)
+        .in("numero_controle_pncp", filtrados.map((item) => item.numeroControlePNCP))
+      const vistos = new Set((existentes ?? []).map((e) => e.numero_controle_pncp))
+      const novos = filtrados.filter((item) => !vistos.has(item.numeroControlePNCP))
+
+      // Insere só o que é novo para este monitoramento
+      for (const item of novos) {
         const { data: inserted, error: errInsert } = await supabase
           .from("resultados_licitacoes")
-          .upsert({
+          .insert({
             numero_controle_pncp: item.numeroControlePNCP,
             monitoramento_id: monitor.id,
             objeto_compra: item.objetoCompra,
@@ -77,19 +96,17 @@ export async function GET(request: Request) {
             data_encerramento_proposta: item.dataEncerramentoProposta,
             link: item.linkSistemaOrigem,
             notificado: false,
-          }, {
-            onConflict: "numero_controle_pncp",
-            ignoreDuplicates: false,
           })
           .select()
           .single()
 
-        if (!errInsert && inserted) {
-          resultadosNovos.push(item.numeroControlePNCP)
-          await supabase.from("notificacoes").insert({
-            resultado_id: inserted.id,
-          })
-        }
+        // Sem a migration 003, edital já vinculado a outro monitor viola a unique global: pula sem erro
+        if (errInsert || !inserted) continue
+
+        resultadosNovos.push(item.numeroControlePNCP)
+        await supabase.from("notificacoes").insert({
+          resultado_id: inserted.id,
+        })
       }
 
       // Atualiza ultima_verificacao
