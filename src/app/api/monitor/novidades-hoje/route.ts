@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseServer } from "@/lib/supabase-server"
-import { buscarNovosDoMonitor, persistirResultados } from "@/lib/monitor-check"
+import { buscarNovosDoMonitor, hojeYyyymmdd, persistirResultados } from "@/lib/monitor-check"
 
 // Verificação manual do dia: busca no PNCP só o que publicou hoje para um
 // monitoramento do usuário e persiste os novos (idempotente via dedup).
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Monitoramento não encontrado" }, { status: 404 })
     }
 
-    const hoje = new Date().toISOString().split("T")[0].replace(/-/g, "")
+    const hoje = hojeYyyymmdd()
     const novos = await buscarNovosDoMonitor(
       supabase,
       monitor,

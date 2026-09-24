@@ -10,6 +10,17 @@ export interface MonitorFiltros {
   cnpj_orgao: string | null
 }
 
+// "Hoje" no fuso de São Paulo em yyyymmdd (toISOString usa UTC e vira o dia às 21h).
+export function hojeYyyymmdd(): string {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+  return partes.replace(/-/g, "")
+}
+
 interface JanelaBusca {
   dataInicial: string
   dataFinal: string
@@ -43,11 +54,13 @@ export async function buscarNovosDoMonitor(
     if (dados.length < tamanhoPagina) break
   }
 
-  const palavrasChave = monitor.palavras_chave ?? []
-  const filtrados = palavrasChave.length > 0
+  // Mesma regra da busca manual: divide em palavras (OR) e inclui o nome do órgão.
+  const termos = (monitor.palavras_chave ?? [])
+    .flatMap((p) => p.toLowerCase().split(/\s+/).filter(Boolean))
+  const filtrados = termos.length > 0
     ? itens.filter((item) => {
-        const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""}`.toLowerCase()
-        return palavrasChave.some((palavra: string) => texto.includes(palavra.toLowerCase()))
+        const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`.toLowerCase()
+        return termos.some((termo) => texto.includes(termo))
       })
     : itens
   if (filtrados.length === 0) return []
