@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { BellRing, CalendarDays, Clock, Plus, Trash2 } from "lucide-react"
 import { formatDateShort } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
@@ -121,15 +122,23 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
             Crie alertas por palavras-chave para acompanhar novas publicações automaticamente.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(!showForm)}
-          aria-expanded={showForm}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Novo agendamento
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/monitoramentos"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Ver monitoramentos
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShowForm(!showForm)}
+            aria-expanded={showForm}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Novo agendamento
+          </button>
+        </div>
       </div>
 
       {erro && (
