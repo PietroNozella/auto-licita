@@ -5,6 +5,12 @@
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 }
 
+@theme {
+  --color-ink: #0b1f3a;
+  --color-ink-hover: #14305a;
+  --color-paper: #f4f6fb;
+}
+
 @layer base {
   button:focus-visible,
   a:focus-visible,

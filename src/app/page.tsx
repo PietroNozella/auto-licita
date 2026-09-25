@@ -151,14 +151,14 @@ export default function Dashboard() {
     : ""
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <header className="bg-white border-b border-zinc-200">
+    <div className="min-h-screen bg-paper">
+      <header className="bg-ink">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <FileSearch className="h-6 w-6 text-blue-600" aria-hidden="true" />
+            <FileSearch className="h-6 w-6 text-white" aria-hidden="true" />
             <div>
-              <h1 className="text-xl font-bold text-zinc-800">Afero</h1>
-              <p className="text-xs text-zinc-500">Busca e monitoramento de licitações</p>
+              <h1 className="text-xl font-bold text-white">Afero</h1>
+              <p className="text-xs text-zinc-300">Busca e monitoramento de licitações</p>
             </div>
           </div>
           <div className="hidden md:block">
@@ -168,7 +168,7 @@ export default function Dashboard() {
             <Link
               href="/monitoramentos"
               aria-label={notificacoesNaoLidas > 0 ? `Ver ${notificacoesNaoLidas} notificações` : "Ver monitoramentos"}
-              className="relative p-2 text-zinc-500 hover:text-zinc-700 transition-colors"
+              className="relative p-2 text-zinc-300 hover:text-white transition-colors"
             >
               <Bell className="h-5 w-5" aria-hidden="true" />
               <span className="absolute -top-0.5 -right-0.5">
@@ -177,12 +177,12 @@ export default function Dashboard() {
             </Link>
 
             {user && (
-              <div className="flex items-center gap-2 pl-3 border-l border-zinc-200">
-                <User className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                <span className="text-sm text-zinc-500 hidden sm:inline">{user.email}</span>
+              <div className="flex items-center gap-2 pl-3 border-l border-white/15">
+                <User className="h-4 w-4 text-zinc-300" aria-hidden="true" />
+                <span className="text-sm text-zinc-300 hidden sm:inline">{user.email}</span>
                 <button
                   onClick={logout}
-                  className="p-1.5 text-zinc-500 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
+                  className="p-1.5 text-zinc-300 hover:text-red-300 transition-colors rounded-md hover:bg-white/10"
                   aria-label="Sair"
                 >
                   <LogOut className="h-4 w-4" />
@@ -191,13 +191,13 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-        <div className="border-t border-zinc-100 px-4 py-2 md:hidden">
+        <div className="border-t border-white/10 px-4 py-2 md:hidden">
           <AppNav />
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        <nav aria-label="Seções do dashboard" className="sticky top-0 z-10 -mx-4 bg-zinc-50/95 px-4 py-2 backdrop-blur">
+        <nav aria-label="Seções do dashboard" className="sticky top-0 z-10 -mx-4 bg-paper/95 px-4 py-2 backdrop-blur">
           <div className="flex gap-2">
             <a href="#buscar" className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 hover:border-blue-200 hover:text-blue-700">Buscar</a>
             <a href="#resultados" className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 hover:border-blue-200 hover:text-blue-700">Resultados</a>

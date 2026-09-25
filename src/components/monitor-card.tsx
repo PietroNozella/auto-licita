@@ -202,7 +202,7 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
           <button
             type="submit"
             disabled={salvando}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ink-hover disabled:opacity-50"
           >
             {salvando ? "Salvando..." : "Agendar"}
           </button>

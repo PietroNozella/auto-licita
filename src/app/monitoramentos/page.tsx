@@ -71,18 +71,18 @@ export default function MonitoramentosPage() {
   const activeResults = activeTab ? resultados.get(activeTab) ?? [] : []
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <header className="bg-white border-b border-zinc-200">
+    <div className="min-h-screen bg-paper">
+      <header className="bg-ink">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/" aria-label="Voltar para o dashboard" className="text-zinc-500 hover:text-zinc-600 transition-colors">
+          <Link href="/" aria-label="Voltar para o dashboard" className="text-zinc-300 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Link>
-          <h1 className="text-xl font-bold text-zinc-800">Monitoramentos</h1>
+          <h1 className="text-xl font-bold text-white">Monitoramentos</h1>
           <div className="ml-auto hidden md:block">
             <AppNav />
           </div>
         </div>
-        <div className="border-t border-zinc-100 px-4 py-2 md:hidden">
+        <div className="border-t border-white/10 px-4 py-2 md:hidden">
           <div className="max-w-5xl mx-auto">
             <AppNav />
           </div>

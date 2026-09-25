@@ -21,8 +21,8 @@ export function AppNav() {
             aria-current={ativo ? "page" : undefined}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               ativo
-                ? "bg-blue-50 text-blue-700"
-                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                ? "bg-white/15 text-white"
+                : "text-zinc-300 hover:bg-white/10 hover:text-white"
             }`}
           >
             {item.rotulo}

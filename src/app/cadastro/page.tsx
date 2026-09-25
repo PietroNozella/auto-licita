@@ -51,7 +51,7 @@ export default function CadastroPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-paper flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
@@ -142,7 +142,7 @@ export default function CadastroPage() {
           <button
             type="submit"
             disabled={loading || !!success}
-            className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="w-full py-2.5 bg-ink text-white rounded-lg text-sm font-medium hover:bg-ink-hover disabled:opacity-50 transition-colors"
           >
             {loading ? "Cadastrando..." : "Criar Conta"}
           </button>
