@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase"
 import { buscarNovosDoMonitor, persistirResultados } from "@/lib/monitor-check"
 
 export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
 export async function GET(request: Request) {
   try {
@@ -36,7 +37,12 @@ export async function GET(request: Request) {
       const dataInicial = dataInicio.toISOString().split("T")[0].replace(/-/g, "")
       const dataFinal = new Date().toISOString().split("T")[0].replace(/-/g, "")
 
-      const novos = await buscarNovosDoMonitor(supabase, monitor, { dataInicial, dataFinal })
+      const novos = await buscarNovosDoMonitor(supabase, monitor, {
+        dataInicial,
+        dataFinal,
+        tamanhoPagina: 50,
+        maxPaginas: 1,
+      })
       const gravados = await persistirResultados(supabase, monitor.id, novos)
       resultadosNovos.push(...gravados.map((g) => g.numero_controle_pncp as string))
 
