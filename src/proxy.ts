@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rotas públicas (o cron se autentica via x-vercel-cron ou CRON_SECRET na rota)
+  // Rotas públicas (o cron se autentica via CRON_SECRET na rota)
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/cadastro") ||
@@ -42,6 +42,10 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
+    // APIs respondem 401 em JSON; páginas redirecionam para o login.
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
+    }
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     return NextResponse.redirect(url)

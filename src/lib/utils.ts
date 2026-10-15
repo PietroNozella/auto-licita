@@ -26,6 +26,19 @@ export function formatDateShort(dateString: string): string {
   return new Intl.DateTimeFormat("pt-BR").format(new Date(dateString))
 }
 
+// Data corrente no fuso de São Paulo, em "yyyy-mm-dd".
+// (toISOString usa UTC e vira o dia às 21h de Brasília.)
+export function dataSp(diasAtras = 0): string {
+  const d = new Date()
+  d.setDate(d.getDate() - diasAtras)
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d)
+}
+
 // "20261015" vira "2026-10-15"; entradas fora do formato ficam como estão.
 export function paraDataIso(yyyymmdd: string): string {
   if (/^\d{8}$/.test(yyyymmdd)) {

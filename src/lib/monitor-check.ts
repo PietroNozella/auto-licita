@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { dataSp } from "@/lib/utils"
 import { buscarContratacoesPorPublicacao, itemContemAlgumTermo } from "./pncp-api"
 import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
 
@@ -10,15 +11,13 @@ export interface MonitorFiltros {
   cnpj_orgao: string | null
 }
 
-// "Hoje" no fuso de São Paulo em yyyymmdd (toISOString usa UTC e vira o dia às 21h).
+// Formato aceito pela API do PNCP (yyyymmdd), no fuso de São Paulo.
 export function hojeYyyymmdd(): string {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
-  return partes.replace(/-/g, "")
+  return dataSp().replace(/-/g, "")
+}
+
+export function yyyymmddDiasAtras(dias: number): string {
+  return dataSp(dias).replace(/-/g, "")
 }
 
 interface JanelaBusca {

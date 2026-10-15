@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Search, SlidersHorizontal } from "lucide-react"
-import { cn, paraDataIso } from "@/lib/utils"
+import { cn, dataSp, paraDataIso } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
 
 interface SearchFormProps {
@@ -29,13 +29,11 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
   const [query, setQuery] = useState(initial?.query ?? "")
   const [dataInicial, setDataInicial] = useState(() => {
     if (initial?.dataInicial) return paraDataIso(initial.dataInicial)
-    const d = new Date()
-    d.setDate(d.getDate() - 30)
-    return d.toISOString().split("T")[0]
+    return dataSp(30)
   })
   const [dataFinal, setDataFinal] = useState(() => {
     if (initial?.dataFinal) return paraDataIso(initial.dataFinal)
-    return new Date().toISOString().split("T")[0]
+    return dataSp()
   })
   const [modalidade, setModalidade] = useState(initial?.modalidade ?? "")
   const [uf, setUf] = useState(initial?.uf ?? "")

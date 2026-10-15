@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase"
-import { buscarNovosDoMonitor, persistirResultados } from "@/lib/monitor-check"
+import { buscarNovosDoMonitor, persistirResultados, hojeYyyymmdd, yyyymmddDiasAtras } from "@/lib/monitor-check"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
 export async function GET(request: Request) {
   try {
-    // Verifica cron secret ou header do Vercel
-    const isVercelCron = request.headers.get("x-vercel-cron") === "1"
+    // A Vercel envia Authorization: Bearer <CRON_SECRET> nas chamadas do cron
+    const secret = process.env.CRON_SECRET
     const authHeader = request.headers.get("authorization")
-    const hasValidSecret = authHeader === `Bearer ${process.env.CRON_SECRET}`
-    if (!isVercelCron && !hasValidSecret) {
+    if (!secret || authHeader !== `Bearer ${secret}`) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
 
@@ -31,11 +30,9 @@ export async function GET(request: Request) {
     const resultadosNovos: string[] = []
 
     for (const monitor of monitoramentos) {
-      // Busca licitações dos últimos 7 dias
-      const dataInicio = new Date()
-      dataInicio.setDate(dataInicio.getDate() - 7)
-      const dataInicial = dataInicio.toISOString().split("T")[0].replace(/-/g, "")
-      const dataFinal = new Date().toISOString().split("T")[0].replace(/-/g, "")
+      // Busca licitações dos últimos 7 dias (datas no fuso de São Paulo)
+      const dataInicial = yyyymmddDiasAtras(7)
+      const dataFinal = hojeYyyymmdd()
 
       const novos = await buscarNovosDoMonitor(supabase, monitor, {
         dataInicial,

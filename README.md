@@ -35,7 +35,7 @@ email da service account.
 
 ## Banco de dados
 
-Aplique as migrations de `supabase/migrations/` em ordem: 001, 002 e 003.
+Aplique as migrations de `supabase/migrations/` em ordem: 001, 002, 003 e 004.
 
 ## Scripts
 
@@ -49,3 +49,5 @@ npm run lint   # ESLint
 ## Cron
 
 O `vercel.json` agenda `/api/cron/verificar` uma vez por dia (00:00 UTC).
+A rota exige `Authorization: Bearer <CRON_SECRET>`; a Vercel envia esse header
+automaticamente quando a variável está definida no projeto.
