@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { createServerClient } from "@supabase/ssr"
+import { getSupabaseServer } from "@/lib/supabase-server"
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,24 +8,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email e senha são obrigatórios" }, { status: 400 })
     }
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, options)
-            }
-          },
-        },
-      }
-    )
-
+    const supabase = await getSupabaseServer()
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {

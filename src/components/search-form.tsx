@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Search, SlidersHorizontal } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, paraDataIso } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
 
 interface SearchFormProps {
@@ -25,23 +25,16 @@ interface SearchFormProps {
   }
 }
 
-function paraInputData(yyyymmdd: string): string {
-  if (/^\d{8}$/.test(yyyymmdd)) {
-    return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
-  }
-  return yyyymmdd
-}
-
 export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
   const [query, setQuery] = useState(initial?.query ?? "")
   const [dataInicial, setDataInicial] = useState(() => {
-    if (initial?.dataInicial) return paraInputData(initial.dataInicial)
+    if (initial?.dataInicial) return paraDataIso(initial.dataInicial)
     const d = new Date()
     d.setDate(d.getDate() - 30)
     return d.toISOString().split("T")[0]
   })
   const [dataFinal, setDataFinal] = useState(() => {
-    if (initial?.dataFinal) return paraInputData(initial.dataFinal)
+    if (initial?.dataFinal) return paraDataIso(initial.dataFinal)
     return new Date().toISOString().split("T")[0]
   })
   const [modalidade, setModalidade] = useState(initial?.modalidade ?? "")

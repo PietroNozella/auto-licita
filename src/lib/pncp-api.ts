@@ -9,6 +9,17 @@ import type {
 const MAX_CONCURRENCY = 3
 const MAX_RETRIES = 2
 
+// Regra de correspondência única da busca manual e dos monitores: o item
+// entra se qualquer termo aparecer no objeto, na informação complementar
+// ou no nome do órgão.
+export function itemContemAlgumTermo(
+  item: RecuperarCompraPublicacaoDTO,
+  termos: string[]
+): boolean {
+  const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`.toLowerCase()
+  return termos.some((termo) => texto.includes(termo))
+}
+
 async function fetchFromPncp<T>(path: string, params: Record<string, string | number | undefined>): Promise<T> {
   const searchParams = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {

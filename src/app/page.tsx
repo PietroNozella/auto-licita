@@ -8,7 +8,8 @@ import { ResultsTable } from "@/components/results-table"
 import { ExportButton } from "@/components/export-button"
 import { MonitorCard } from "@/components/monitor-card"
 import { NotificationBadge } from "@/components/notification-badge"
-import { MODALIDADES } from "@/lib/pncp-api"
+import { MODALIDADES, itemContemAlgumTermo } from "@/lib/pncp-api"
+import { paraDataIso } from "@/lib/utils"
 import type { RecuperarCompraPublicacaoDTO, Monitoramento } from "@/types/pncp"
 import { useAuth } from "@/components/auth-provider"
 import { Bell, FileSearch, LogOut, User } from "lucide-react"
@@ -20,12 +21,6 @@ interface SearchParamsState {
   modalidade: string
   uf: string
   cnpj: string
-}
-
-function comTracos(yyyymmdd: string): string {
-  return yyyymmdd.length === 8
-    ? `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
-    : yyyymmdd
 }
 
 // Restaura os campos do formulário a partir da URL (volta de /monitoramentos).
@@ -117,10 +112,7 @@ export default function Dashboard() {
       let items = data.data ?? []
       if (params.query.trim()) {
         const palavras = params.query.toLowerCase().split(" ").filter(Boolean)
-        items = items.filter((item: RecuperarCompraPublicacaoDTO) => {
-          const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`.toLowerCase()
-          return palavras.some((palavra) => texto.includes(palavra))
-        })
+        items = items.filter((item: RecuperarCompraPublicacaoDTO) => itemContemAlgumTermo(item, palavras))
       }
 
       setResults(items)
@@ -130,8 +122,8 @@ export default function Dashboard() {
       // Espelha a busca na URL para preservar os campos ao voltar de /monitoramentos.
       const urlParams = new URLSearchParams()
       if (params.query) urlParams.set("q", params.query)
-      if (params.dataInicial) urlParams.set("dataInicial", comTracos(params.dataInicial))
-      if (params.dataFinal) urlParams.set("dataFinal", comTracos(params.dataFinal))
+      if (params.dataInicial) urlParams.set("dataInicial", paraDataIso(params.dataInicial))
+      if (params.dataFinal) urlParams.set("dataFinal", paraDataIso(params.dataFinal))
       if (params.modalidade) urlParams.set("modalidade", params.modalidade)
       if (params.uf) urlParams.set("uf", params.uf)
       if (params.cnpj) urlParams.set("cnpj", params.cnpj)
@@ -230,7 +222,7 @@ export default function Dashboard() {
                   )}
                   {ultimaBusca.dataInicial && ultimaBusca.dataFinal && (
                     <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">
-                      {comTracos(ultimaBusca.dataInicial)} a {comTracos(ultimaBusca.dataFinal)}
+                      {paraDataIso(ultimaBusca.dataInicial)} a {paraDataIso(ultimaBusca.dataFinal)}
                     </span>
                   )}
                   {modalidadeNome && (

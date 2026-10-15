@@ -26,12 +26,10 @@ export function formatDateShort(dateString: string): string {
   return new Intl.DateTimeFormat("pt-BR").format(new Date(dateString))
 }
 
-export function hojeISO(): string {
-  return new Date().toISOString().split("T")[0].replace(/-/g, "")
-}
-
-export function diasAtrasISO(dias: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - dias)
-  return d.toISOString().split("T")[0].replace(/-/g, "")
+// "20261015" vira "2026-10-15"; entradas fora do formato ficam como estão.
+export function paraDataIso(yyyymmdd: string): string {
+  if (/^\d{8}$/.test(yyyymmdd)) {
+    return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
+  }
+  return yyyymmdd
 }

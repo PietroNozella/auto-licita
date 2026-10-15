@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { buscarContratacoesPorPublicacao } from "./pncp-api"
+import { buscarContratacoesPorPublicacao, itemContemAlgumTermo } from "./pncp-api"
 import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
 
 export interface MonitorFiltros {
@@ -58,10 +58,7 @@ export async function buscarNovosDoMonitor(
   const termos = (monitor.palavras_chave ?? [])
     .flatMap((p) => p.toLowerCase().split(/\s+/).filter(Boolean))
   const filtrados = termos.length > 0
-    ? itens.filter((item) => {
-        const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`.toLowerCase()
-        return termos.some((termo) => texto.includes(termo))
-      })
+    ? itens.filter((item) => itemContemAlgumTermo(item, termos))
     : itens
   if (filtrados.length === 0) return []
 

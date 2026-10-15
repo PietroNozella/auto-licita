@@ -1,27 +1,9 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { createServerClient } from "@supabase/ssr"
+import { getSupabaseServer } from "@/lib/supabase-server"
 
 export async function POST() {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, options)
-            }
-          },
-        },
-      }
-    )
-
+    const supabase = await getSupabaseServer()
     await supabase.auth.signOut()
     return NextResponse.json({ success: true })
   } catch {
