@@ -53,14 +53,25 @@ export default function MonitoramentosPage() {
     setErro("")
     setMarcandoId(id)
     try {
-      // Atualiza via API monitor PATCH
       const res = await fetch(`/api/monitor/resultados/marcar-lida`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       })
-      if (!res.ok) throw new Error("Erro ao marcar como lida.")
-      await carregarDados()
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? "Erro ao marcar como lida.")
+      }
+      // Atualiza o item localmente: sem recarregar a grade nem perder o contexto.
+      setResultados((prev) => {
+        const proximo = new Map(prev)
+        for (const [monitorId, lista] of proximo) {
+          if (lista.some((r) => r.id === id)) {
+            proximo.set(monitorId, lista.map((r) => (r.id === id ? { ...r, notificado: true } : r)))
+          }
+        }
+        return proximo
+      })
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Erro ao marcar resultado como lido.")
     } finally {
@@ -109,13 +120,36 @@ export default function MonitoramentosPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1 space-y-1" role="tablist" aria-label="Monitoramentos">
+            <div
+              className="lg:col-span-1 space-y-1"
+              role="tablist"
+              aria-label="Monitoramentos"
+              aria-orientation="vertical"
+              onKeyDown={(e) => {
+                if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return
+                const abas = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+                const atual = abas.indexOf(document.activeElement as HTMLButtonElement)
+                if (atual === -1) return
+                e.preventDefault()
+                const destino =
+                  e.key === "Home" ? 0
+                  : e.key === "End" ? abas.length - 1
+                  : e.key === "ArrowDown" || e.key === "ArrowRight" ? Math.min(abas.length - 1, atual + 1)
+                  : Math.max(0, atual - 1)
+                const alvo = abas[destino]
+                alvo.click()
+                alvo.focus()
+              }}
+            >
               {monitoramentos.map((m) => (
                 <button
                   key={m.id}
                   type="button"
+                  id={`aba-${m.id}`}
                   role="tab"
                   aria-selected={activeTab === m.id}
+                  aria-controls="painel-resultados"
+                  tabIndex={activeTab === m.id ? 0 : -1}
                   onClick={() => setActiveTab(m.id)}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                     activeTab === m.id
@@ -138,7 +172,12 @@ export default function MonitoramentosPage() {
               ))}
             </div>
 
-            <div className="lg:col-span-3">
+            <div
+              className="lg:col-span-3"
+              id="painel-resultados"
+              role="tabpanel"
+              aria-labelledby={`aba-${activeTab ?? ""}`}
+            >
               {activeResults.length === 0 ? (
                 <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
                   <p className="text-zinc-500">Nenhum resultado encontrado para este monitoramento.</p>
@@ -171,7 +210,7 @@ export default function MonitoramentosPage() {
                               type="button"
                               onClick={() => marcarLida(r.id)}
                               disabled={marcandoId === r.id}
-                              className="px-2 py-1 text-[10px] rounded bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 transition-colors"
+                              className="rounded bg-blue-100 px-3 py-2.5 text-xs font-medium text-blue-700 hover:bg-blue-200 disabled:opacity-50 transition-colors"
                             >
                               {marcandoId === r.id ? "Marcando..." : "Marcar lida"}
                             </button>

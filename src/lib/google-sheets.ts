@@ -49,6 +49,13 @@ export async function exportarParaSheets(
     })
   }
 
+  // Limpa a aba antes de gravar: export anterior maior não sobra como
+  // linhas "fantasmas" misturadas com a nova busca.
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: sheetName,
+  })
+
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${sheetName}!A1`,

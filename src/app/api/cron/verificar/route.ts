@@ -28,32 +28,41 @@ export async function GET(request: Request) {
     }
 
     const resultadosNovos: string[] = []
+    const detalhesFalhas: string[] = []
 
+    // Janela comum a todos os monitoramentos (datas no fuso de São Paulo)
+    const dataInicial = yyyymmddDiasAtras(7)
+    const dataFinal = hojeYyyymmdd()
+
+    // Um monitoramento com falha não bloqueia os demais
     for (const monitor of monitoramentos) {
-      // Busca licitações dos últimos 7 dias (datas no fuso de São Paulo)
-      const dataInicial = yyyymmddDiasAtras(7)
-      const dataFinal = hojeYyyymmdd()
+      try {
+        const novos = await buscarNovosDoMonitor(supabase, monitor, {
+          dataInicial,
+          dataFinal,
+          tamanhoPagina: 50,
+          maxPaginas: 1,
+        })
+        const gravados = await persistirResultados(supabase, monitor.id, novos)
+        resultadosNovos.push(...gravados.map((g) => g.numero_controle_pncp as string))
 
-      const novos = await buscarNovosDoMonitor(supabase, monitor, {
-        dataInicial,
-        dataFinal,
-        tamanhoPagina: 50,
-        maxPaginas: 1,
-      })
-      const gravados = await persistirResultados(supabase, monitor.id, novos)
-      resultadosNovos.push(...gravados.map((g) => g.numero_controle_pncp as string))
-
-      // Atualiza ultima_verificacao
-      await supabase
-        .from("monitoramentos")
-        .update({ ultima_verificacao: new Date().toISOString() })
-        .eq("id", monitor.id)
+        // Atualiza ultima_verificacao
+        await supabase
+          .from("monitoramentos")
+          .update({ ultima_verificacao: new Date().toISOString() })
+          .eq("id", monitor.id)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Erro desconhecido"
+        detalhesFalhas.push(`${monitor.id}: ${message}`)
+      }
     }
 
     return NextResponse.json({
       message: "Verificação concluída",
       monitoramentosProcessados: monitoramentos.length,
       resultadosNovos: resultadosNovos.length,
+      falhas: detalhesFalhas.length,
+      ...(detalhesFalhas.length > 0 ? { detalhes: detalhesFalhas } : {}),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro interno"

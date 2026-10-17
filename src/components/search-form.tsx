@@ -52,7 +52,8 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
       dataFinal: dataFinal.replace(/-/g, ""),
       modalidade,
       uf,
-      cnpj,
+      // Máscara é aceita no campo; a API consultada só opera com dígitos.
+      cnpj: cnpj.replace(/\D/g, ""),
     })
   }
 

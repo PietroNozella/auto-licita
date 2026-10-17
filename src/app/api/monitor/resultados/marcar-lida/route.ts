@@ -24,13 +24,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nenhum monitoramento encontrado" }, { status: 404 })
     }
 
-    const { error } = await supabase
+    const { data: atualizadas, error } = await supabase
       .from("resultados_licitacoes")
       .update({ notificado: true })
       .eq("id", id)
       .in("monitoramento_id", monIds.map((m) => m.id))
+      .select("id")
 
     if (error) throw error
+    if (!atualizadas || atualizadas.length === 0) {
+      return NextResponse.json({ error: "Resultado não encontrado" }, { status: 404 })
+    }
     return NextResponse.json({ success: true })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro interno"

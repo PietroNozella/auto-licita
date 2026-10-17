@@ -55,9 +55,8 @@ export default function CadastroPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Afero</p>
-          <h1 className="text-xl font-bold text-zinc-800 mt-1">Criar Conta</h1>
-          <p className="text-sm text-zinc-500 mt-1">Cadastre-se para usar o dashboard</p>
+          <h1 className="text-xl font-bold text-zinc-800">Afero</h1>
+          <p className="text-sm text-zinc-500 mt-1">Crie sua conta para usar o dashboard</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
@@ -82,6 +81,7 @@ export default function CadastroPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Seu nome"
+              autoComplete="name"
               className="w-full px-3 py-2.5 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -94,6 +94,7 @@ export default function CadastroPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
+              autoComplete="email"
               required
               className="w-full px-3 py-2.5 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -108,6 +109,7 @@ export default function CadastroPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
+                autoComplete="new-password"
                 required
                 minLength={6}
                 className="w-full px-3 py-2.5 pr-11 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -133,6 +135,7 @@ export default function CadastroPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repita a senha"
+              autoComplete="new-password"
               required
               minLength={6}
               className="w-full px-3 py-2.5 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

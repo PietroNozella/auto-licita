@@ -53,9 +53,9 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
       <div className="flex flex-col gap-2 border-b border-zinc-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-zinc-500">
           Exibindo <span className="font-medium text-zinc-700">{startItem}-{endItem}</span> de{" "}
-          <span className="font-medium text-zinc-700">{count}</span> licitação{count !== 1 ? "ões" : ""}
+          <span className="font-medium text-zinc-700">{count}</span> licitaç{count !== 1 ? "ões" : "ão"}
           {totalRegistros != null && totalRegistros > data.length && (
-            <span className="text-zinc-500"> (total geral: {totalRegistros}; exibindo até {data.length})</span>
+            <span className="text-zinc-500"> (total geral: {totalRegistros}; listando os {data.length} mais recentes)</span>
           )}
         </p>
         {totalPages > 1 && (
@@ -69,7 +69,9 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{item.modalidadeNome}</span>
+                  {item.modalidadeNome && (
+                    <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{item.modalidadeNome}</span>
+                  )}
                   {item.unidadeOrgao?.ufSigla && (
                     <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
                       <MapPin className="h-3.5 w-3.5" aria-hidden="true" />

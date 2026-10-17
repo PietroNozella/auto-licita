@@ -35,7 +35,7 @@ email da service account.
 
 ## Banco de dados
 
-Aplique as migrations de `supabase/migrations/` em ordem: 001, 002, 003 e 004.
+Aplique as migrations de `supabase/migrations/` em ordem: 001, 002, 003, 004 e 005 (a 005 remove a tabela `notificacoes`, que não é usada pelo aplicativo).
 
 ## Scripts
 

@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { BellRing, CalendarDays, Clock, Plus, Trash2 } from "lucide-react"
 import { formatDateShort } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
+import { Modal } from "@/components/modal"
 import type { Monitoramento } from "@/types/pncp"
 
 interface MonitorCardProps {
@@ -23,15 +24,6 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
   const [excluirAlvo, setExcluirAlvo] = useState<Monitoramento | null>(null)
   const [novidades, setNovidades] = useState<Record<string, { texto: string; novos: number }>>({})
   const [erro, setErro] = useState("")
-
-  useEffect(() => {
-    if (!excluirAlvo) return
-    function fecharNoEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setExcluirAlvo(null)
-    }
-    window.addEventListener("keydown", fecharNoEscape)
-    return () => window.removeEventListener("keydown", fecharNoEscape)
-  }, [excluirAlvo])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -211,7 +203,7 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
 
       {monitoramentos.length === 0 && !showForm ? (
         <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-8 text-center">
-          <p className="text-sm text-zinc-500">Nenhum monitoramento ativo.</p>
+          <p className="text-sm text-zinc-500">Nenhum monitoramento ainda.</p>
           <p className="mt-1 text-sm text-zinc-500">Crie um agendamento para receber notificações de novas licitações.</p>
         </div>
       ) : (
@@ -297,44 +289,28 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
       )}
 
       {excluirAlvo && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setExcluirAlvo(null)
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="excluir-monitor-title"
-            className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
-          >
-            <h3 id="excluir-monitor-title" className="text-lg font-semibold text-zinc-800">
-              Excluir monitoramento
-            </h3>
-            <p className="mt-2 text-sm text-zinc-500">
-              Excluir “{excluirAlvo.nome}”? Os resultados já salvos serão removidos junto.
-            </p>
-            <div className="flex gap-2 mt-6 justify-end">
-              <button
-                type="button"
-                onClick={() => setExcluirAlvo(null)}
-                autoFocus
-                className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-800"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(excluirAlvo)}
-                disabled={actionId === excluirAlvo.id}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {actionId === excluirAlvo.id ? "Excluindo..." : "Excluir"}
-              </button>
-            </div>
+        <Modal titulo="Excluir monitoramento" onClose={() => setExcluirAlvo(null)}>
+          <p className="mt-2 text-sm text-zinc-500">
+            Excluir “{excluirAlvo.nome}”? Os resultados já salvos serão removidos junto.
+          </p>
+          <div className="mt-6 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setExcluirAlvo(null)}
+              className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDelete(excluirAlvo)}
+              disabled={actionId === excluirAlvo.id}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            >
+              {actionId === excluirAlvo.id ? "Excluindo..." : "Excluir"}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

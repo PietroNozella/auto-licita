@@ -93,9 +93,13 @@ async function buscarTodasModalidades(
     })
     .sort((a, b) => new Date(b.dataPublicacaoPncp).getTime() - new Date(a.dataPublicacaoPncp).getTime())
 
+  // Cada resposta traz o total real da sua modalidade: a soma é o total do
+  // período, mesmo exibindo só a primeira página (limite de tamanhoPagina).
+  const totalRegistros = results.reduce((soma, r) => soma + (r.totalRegistros ?? 0), 0)
+
   return {
     data: merged,
-    totalRegistros: merged.length,
+    totalRegistros,
     totalPaginas: 1,
     numeroPagina: params.pagina,
     paginasRestantes: 0,
@@ -118,46 +122,6 @@ export async function buscarContratacoesPorPublicacao(
     })
   }
   return buscarTodasModalidades("/v1/contratacoes/publicacao", params)
-}
-
-export async function buscarContratacoesComPropostaAberta(
-  dataFinal: string,
-  params?: Partial<PncpSearchParams>
-): Promise<PaginaRetornoRecuperarCompraPublicacaoDTO> {
-  return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/proposta", {
-    dataFinal,
-    codigoModalidadeContratacao: params?.codigoModalidadeContratacao,
-    uf: params?.uf,
-    codigoMunicipioIbge: params?.codigoMunicipioIbge,
-    cnpj: params?.cnpj,
-    pagina: params?.pagina ?? 1,
-    tamanhoPagina: params?.tamanhoPagina ?? 50,
-  })
-}
-
-export async function buscarContratacoesPorAtualizacao(
-  params: PncpSearchParams
-): Promise<PaginaRetornoRecuperarCompraPublicacaoDTO> {
-  if (params.codigoModalidadeContratacao) {
-    return fetchFromPncp<PaginaRetornoRecuperarCompraPublicacaoDTO>("/v1/contratacoes/atualizacao", {
-      dataInicial: params.dataInicial,
-      dataFinal: params.dataFinal,
-      codigoModalidadeContratacao: params.codigoModalidadeContratacao,
-      uf: params.uf,
-      cnpj: params.cnpj,
-      pagina: params.pagina,
-      tamanhoPagina: params.tamanhoPagina ?? 50,
-    })
-  }
-  return buscarTodasModalidades("/v1/contratacoes/atualizacao", params)
-}
-
-export async function buscarDetalheContratacao(
-  cnpj: string,
-  ano: number,
-  sequencial: number
-): Promise<RecuperarCompraPublicacaoDTO> {
-  return fetchFromPncp<RecuperarCompraPublicacaoDTO>(`/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}`, {})
 }
 
 export const MODALIDADES = [

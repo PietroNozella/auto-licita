@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [ultimaBusca, setUltimaBusca] = useState<SearchParamsState | null>(null)
   const [totalRegistros, setTotalRegistros] = useState<number | null>(null)
   const [buscaInicial] = useState<SearchParamsState | null>(lerBuscaDaUrl)
+  const [falhaCarregamento, setFalhaCarregamento] = useState(false)
   const mounted = useRef(false)
 
   const carregarMonitoramentos = useCallback(async () => {
@@ -59,24 +60,37 @@ export default function Dashboard() {
       if (res.ok) {
         const data = await res.json()
         setMonitoramentos(data)
+        setFalhaCarregamento(false)
+        return
       }
+      setFalhaCarregamento(true)
     } catch {
-      // Mantém o dashboard utilizável mesmo se os monitoramentos falharem.
+      // Sinaliza a falha sem tirar o dashboard do ar.
+      setFalhaCarregamento(true)
     }
   }, [])
 
   const carregarNotificacoes = useCallback(async () => {
     try {
       const res = await fetch("/api/monitor/resultados")
-      if (!res.ok) return
+      if (!res.ok) {
+        setFalhaCarregamento(true)
+        return
+      }
       const data = await res.json()
       const resultados = (data.resultados ?? {}) as Record<string, Array<{ notificado?: boolean }>>
       const total = Object.values(resultados).flat().filter((r) => !r.notificado).length
       setNotificacoesNaoLidas(total)
     } catch {
-      // Mantém o dashboard utilizável mesmo se as notificações falharem.
+      // Sinaliza a falha sem tirar o dashboard do ar.
+      setFalhaCarregamento(true)
     }
   }, [])
+
+  const tentarNovamente = useCallback(async () => {
+    setFalhaCarregamento(false)
+    await Promise.all([carregarMonitoramentos(), carregarNotificacoes()])
+  }, [carregarMonitoramentos, carregarNotificacoes])
 
   useEffect(() => {
     if (mounted.current) return
@@ -93,7 +107,6 @@ export default function Dashboard() {
     setSearchVersion((version) => version + 1)
     try {
       const searchParams = new URLSearchParams()
-      searchParams.set("tipo", "publicacao")
       searchParams.set("dataInicial", params.dataInicial)
       searchParams.set("dataFinal", params.dataFinal)
       searchParams.set("pagina", "1")
@@ -159,7 +172,11 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <Link
               href="/monitoramentos"
-              aria-label={notificacoesNaoLidas > 0 ? `Ver ${notificacoesNaoLidas} notificações` : "Ver monitoramentos"}
+              aria-label={
+                notificacoesNaoLidas > 0
+                  ? `Ver ${notificacoesNaoLidas} notificaç${notificacoesNaoLidas > 1 ? "ões" : "ão"}`
+                  : "Ver monitoramentos"
+              }
               className="relative p-2 text-zinc-300 hover:text-white transition-colors"
             >
               <Bell className="h-5 w-5" aria-hidden="true" />
@@ -243,6 +260,18 @@ export default function Dashboard() {
         </section>
 
         <section id="monitores" className="scroll-mt-20 bg-white rounded-xl border border-zinc-200 p-4">
+          {falhaCarregamento && (
+            <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span>Não foi possível carregar monitoramentos e notificações.</span>
+              <button
+                type="button"
+                onClick={tentarNovamente}
+                className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+              >
+                Tentar de novo
+              </button>
+            </div>
+          )}
           <MonitorCard monitoramentos={monitoramentos} onCreated={() => {
             carregarMonitoramentos()
             carregarNotificacoes()

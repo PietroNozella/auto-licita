@@ -33,15 +33,22 @@ export async function POST(request: NextRequest) {
     if (!nome) {
       return NextResponse.json({ error: "nome é obrigatório" }, { status: 400 })
     }
+    const palavras = Array.isArray(body.palavras_chave)
+      ? body.palavras_chave.filter((p: unknown) => typeof p === "string")
+      : []
+    // A API consultada só opera com 14 dígitos; máscara é limpa na gravação.
+    const cnpjOrgao = typeof body.cnpj_orgao === "string"
+      ? body.cnpj_orgao.replace(/\D/g, "") || null
+      : null
     const { data, error } = await supabase
       .from("monitoramentos")
       .insert({
         user_id: userId,
         nome,
-        palavras_chave: body.palavras_chave ?? [],
-        uf: body.uf ?? null,
-        modalidade_id: body.modalidade_id ?? null,
-        cnpj_orgao: body.cnpj_orgao ?? null,
+        palavras_chave: palavras,
+        uf: typeof body.uf === "string" && body.uf ? body.uf : null,
+        modalidade_id: typeof body.modalidade_id === "number" ? body.modalidade_id : null,
+        cnpj_orgao: cnpjOrgao,
       })
       .select()
       .single()
@@ -67,12 +74,16 @@ export async function PATCH(request: NextRequest) {
     }
     const body = await request.json()
     const update: Record<string, unknown> = {}
-    if (body.nome !== undefined) update.nome = body.nome
-    if (body.palavras_chave !== undefined) update.palavras_chave = body.palavras_chave
-    if (body.uf !== undefined) update.uf = body.uf
-    if (body.modalidade_id !== undefined) update.modalidade_id = body.modalidade_id
-    if (body.cnpj_orgao !== undefined) update.cnpj_orgao = body.cnpj_orgao
-    if (body.ativo !== undefined) update.ativo = body.ativo
+    if (typeof body.nome === "string" && body.nome.trim()) update.nome = body.nome.trim()
+    if (Array.isArray(body.palavras_chave)) {
+      update.palavras_chave = body.palavras_chave.filter((p: unknown) => typeof p === "string")
+    }
+    if (typeof body.uf === "string") update.uf = body.uf || null
+    if (typeof body.modalidade_id === "number") update.modalidade_id = body.modalidade_id
+    if (typeof body.cnpj_orgao === "string") {
+      update.cnpj_orgao = body.cnpj_orgao.replace(/\D/g, "") || null
+    }
+    if (typeof body.ativo === "boolean") update.ativo = body.ativo
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: "nenhum campo válido para atualizar" }, { status: 400 })
     }

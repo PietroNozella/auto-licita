@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Download, FileSpreadsheet, Check, Copy } from "lucide-react"
 import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
+import { dataSp } from "@/lib/utils"
+import { Modal } from "@/components/modal"
 
 interface ExportButtonProps {
   data: RecuperarCompraPublicacaoDTO[]
@@ -56,14 +58,8 @@ export function ExportButton({ data }: ExportButtonProps) {
   const [exporting, setExporting] = useState(false)
   const [erro, setErro] = useState("")
 
-  useEffect(() => {
-    if (!showSheetModal) return
-    function fecharNoEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setShowSheetModal(false)
-    }
-    window.addEventListener("keydown", fecharNoEscape)
-    return () => window.removeEventListener("keydown", fecharNoEscape)
-  }, [showSheetModal])
+  // Nome do arquivo no fuso de São Paulo (toISOString vira o dia às 21h BRT).
+  const sufixoData = dataSp()
 
   if (data.length === 0) return null
 
@@ -85,7 +81,7 @@ export function ExportButton({ data }: ExportButtonProps) {
         body: JSON.stringify({
           headers: EXPORT_HEADERS,
           rows,
-          filename: `licitacoes-${new Date().toISOString().split("T")[0]}.csv`,
+          filename: `licitacoes-${sufixoData}.csv`,
         }),
       })
       if (!res.ok) throw new Error("Não foi possível gerar o CSV.")
@@ -93,7 +89,7 @@ export function ExportButton({ data }: ExportButtonProps) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `licitacoes-${new Date().toISOString().split("T")[0]}.csv`
+      a.download = `licitacoes-${sufixoData}.csv`
       a.click()
       URL.revokeObjectURL(url)
       setCsvOk(true)
@@ -169,7 +165,10 @@ export function ExportButton({ data }: ExportButtonProps) {
         </button>
         <button
           type="button"
-          onClick={() => setShowSheetModal(true)}
+          onClick={() => {
+            setErro("")
+            setShowSheetModal(true)
+          }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-green-300 text-sm text-green-700 hover:bg-green-50 transition-colors"
         >
           <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />
@@ -177,69 +176,60 @@ export function ExportButton({ data }: ExportButtonProps) {
         </button>
       </div>
 
-      {erro && <p role="alert" className="mt-2 text-sm text-red-600">{erro}</p>}
+      {!showSheetModal && erro && <p role="alert" className="mt-2 text-sm text-red-600">{erro}</p>}
 
       {showSheetModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setShowSheetModal(false)
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="export-sheets-title"
-            className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"
-          >
-            <h3 id="export-sheets-title" className="text-lg font-semibold mb-4">Exportar para Google Sheets</h3>
-            <div className="space-y-3">
-              <div>
-                <label htmlFor="sheet-url" className="block text-xs font-medium text-zinc-500 mb-1">
-                  ID da planilha ou URL
-                </label>
-                <input
-                  id="sheet-url"
-                  type="text"
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  autoFocus
-                  className="w-full px-3 py-2 rounded-md border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="sheet-name" className="block text-xs font-medium text-zinc-500 mb-1">
-                  Nome da aba
-                </label>
-                <input
-                  id="sheet-name"
-                  type="text"
-                  value={sheetName}
-                  onChange={(e) => setSheetName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+        <Modal titulo="Exportar para Google Sheets" onClose={() => setShowSheetModal(false)}>
+          {erro && (
+            <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {erro}
             </div>
-            <div className="flex gap-2 mt-6 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowSheetModal(false)}
-                className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-800"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={exportSheets}
-                disabled={!sheetUrl || exporting}
-                className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
-                {exporting ? "Exportando..." : "Exportar"}
-              </button>
+          )}
+          <div className="mt-4 space-y-3">
+            <div>
+              <label htmlFor="sheet-url" className="block text-xs font-medium text-zinc-500 mb-1">
+                ID da planilha ou URL
+              </label>
+              <input
+                id="sheet-url"
+                type="text"
+                value={sheetUrl}
+                onChange={(e) => setSheetUrl(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="sheet-name" className="block text-xs font-medium text-zinc-500 mb-1">
+                Nome da aba
+              </label>
+              <input
+                id="sheet-name"
+                type="text"
+                value={sheetName}
+                onChange={(e) => setSheetName(e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           </div>
-        </div>
+          <div className="flex gap-2 mt-6 justify-end">
+            <button
+              type="button"
+              onClick={() => setShowSheetModal(false)}
+              className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={exportSheets}
+              disabled={!sheetUrl || exporting}
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            >
+              {exporting ? "Exportando..." : "Exportar"}
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   )

@@ -44,7 +44,8 @@ export async function buscarNovosDoMonitor(
       dataFinal: janela.dataFinal,
       codigoModalidadeContratacao: monitor.modalidade_id ?? undefined,
       uf: monitor.uf ?? undefined,
-      cnpj: monitor.cnpj_orgao ?? undefined,
+      // A API consultada só opera com 14 dígitos; dados antigos podem ter máscara.
+      cnpj: monitor.cnpj_orgao ? monitor.cnpj_orgao.replace(/\D/g, "") : undefined,
       pagina,
       tamanhoPagina,
     })
@@ -72,6 +73,7 @@ export async function buscarNovosDoMonitor(
 
 // Persiste os itens e retorna as linhas gravadas. Conflito global sem a
 // migration 003 (edital já vinculado a outro monitor) é pulado sem erro.
+// Estado de leitura vive em resultados_licitacoes.notificado (marcar-lida).
 export async function persistirResultados(
   supabase: SupabaseClient,
   monitoramentoId: string,
@@ -102,9 +104,6 @@ export async function persistirResultados(
     if (error || !inserted) continue
 
     gravados.push(inserted as Record<string, unknown>)
-    await supabase.from("notificacoes").insert({
-      resultado_id: (inserted as { id: string }).id,
-    })
   }
   return gravados
 }
