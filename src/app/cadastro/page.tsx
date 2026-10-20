@@ -16,6 +16,7 @@ export default function CadastroPage() {
   const [erro, setErro] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
+  const signupEnabled = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === "true"
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,6 +49,21 @@ export default function CadastroPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!signupEnabled) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center">
+          <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
+          <h1 className="text-xl font-bold text-zinc-800">Afero</h1>
+          <p className="text-sm text-zinc-500 mt-2">O cadastro público está desativado.</p>
+          <Link href="/login" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
+            Ir para o login
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (

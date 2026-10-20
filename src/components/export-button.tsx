@@ -10,6 +10,8 @@ interface ExportButtonProps {
   data: RecuperarCompraPublicacaoDTO[]
 }
 
+const sheetsEnabled = process.env.NEXT_PUBLIC_SHEETS_ENABLED === "true"
+
 const EXPORT_HEADERS = [
   "Objeto",
   "Órgão",
@@ -130,7 +132,10 @@ export function ExportButton({ data }: ExportButtonProps) {
           rows,
         }),
       })
-      if (!res.ok) throw new Error("Não foi possível exportar para o Google Sheets.")
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error ?? "Não foi possível exportar para o Google Sheets.")
+      }
       const result = await res.json()
       window.open(result.url, "_blank")
       setShowSheetModal(false)
@@ -163,17 +168,19 @@ export function ExportButton({ data }: ExportButtonProps) {
           {copied ? <Check className="h-3.5 w-3.5 text-green-600" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
           {copied ? "Copiado" : "JSON"}
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setErro("")
-            setShowSheetModal(true)
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-green-300 text-sm text-green-700 hover:bg-green-50 transition-colors"
-        >
-          <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />
-          Google Sheets
-        </button>
+        {sheetsEnabled && (
+          <button
+            type="button"
+            onClick={() => {
+              setErro("")
+              setShowSheetModal(true)
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-green-300 text-sm text-green-700 hover:bg-green-50 transition-colors"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />
+            Google Sheets
+          </button>
+        )}
       </div>
 
       {!showSheetModal && erro && <p role="alert" className="mt-2 text-sm text-red-600">{erro}</p>}

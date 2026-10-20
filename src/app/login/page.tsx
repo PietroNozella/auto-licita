@@ -6,6 +6,8 @@ import Link from "next/link"
 import { FileSearch, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { traduzirErroAuth } from "@/lib/auth-erros"
 
+const signupEnabled = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === "true"
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
@@ -100,10 +102,12 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
 
-          <p className="text-center text-sm text-zinc-500">
-            Não tem conta?{" "}
-            <Link href="/cadastro" className="text-blue-600 hover:underline">Cadastre-se</Link>
-          </p>
+          {signupEnabled && (
+            <p className="text-center text-sm text-zinc-500">
+              Não tem conta?{" "}
+              <Link href="/cadastro" className="text-blue-600 hover:underline">Cadastre-se</Link>
+            </p>
+          )}
         </form>
       </div>
     </div>

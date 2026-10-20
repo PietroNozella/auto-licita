@@ -4,6 +4,9 @@ import { exportarParaSheets } from "@/lib/google-sheets"
 
 export async function POST(request: NextRequest) {
   try {
+    if (process.env.NEXT_PUBLIC_SHEETS_ENABLED !== "true") {
+      return NextResponse.json({ error: "Exportação para Google Sheets desativada" }, { status: 403 })
+    }
     const userId = await getUserId()
     if (!userId) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
