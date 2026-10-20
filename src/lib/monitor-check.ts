@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { dataSp } from "@/lib/utils"
-import { buscarContratacoesPorPublicacao, itemContemAlgumTermo } from "./pncp-api"
+import { buscarContratacoesPorPublicacao, extrairTermosBusca, itemContemAlgumTermo } from "./pncp-api"
 import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
 
 export interface MonitorFiltros {
@@ -72,7 +72,7 @@ export async function buscarNovosDoMonitor(
 
   // Mesma regra da busca manual: divide em palavras (OR) e inclui o nome do órgão.
   const termos = (monitor.palavras_chave ?? [])
-    .flatMap((p) => p.toLowerCase().split(/\s+/).filter(Boolean))
+    .flatMap(extrairTermosBusca)
   const filtrados = termos.length > 0
     ? itens.filter((item) => itemContemAlgumTermo(item, termos))
     : itens

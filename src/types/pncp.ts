@@ -75,6 +75,7 @@ export interface PaginaRetornoRecuperarCompraPublicacaoDTO {
   // Presentes quando a busca agrega várias modalidades e alguma falhou.
   parcial?: boolean
   modalidadesComFalha?: number
+  registrosConsultados?: number
 }
 
 export interface PncpSearchParams {

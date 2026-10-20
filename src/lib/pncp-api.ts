@@ -28,12 +28,20 @@ function aguardarNovaTentativa(ms: number, signal: AbortSignal): Promise<void> {
 // Regra de correspondência única da busca manual e dos monitores: o item
 // entra se qualquer termo aparecer no objeto, na informação complementar
 // ou no nome do órgão.
+function normalizarTexto(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+}
+
+export function extrairTermosBusca(texto: string): string[] {
+  return normalizarTexto(texto).split(/[\s,;]+/).filter(Boolean)
+}
+
 export function itemContemAlgumTermo(
   item: RecuperarCompraPublicacaoDTO,
   termos: string[]
 ): boolean {
-  const texto = `${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`.toLowerCase()
-  return termos.some((termo) => texto.includes(termo))
+  const texto = normalizarTexto(`${item.objetoCompra ?? ""} ${item.informacaoComplementar ?? ""} ${item.orgaoEntidade?.razaoSocial ?? ""}`)
+  return termos.some((termo) => termo.trim() !== "" && texto.includes(normalizarTexto(termo).trim()))
 }
 
 async function fetchFromPncp<T>(

@@ -52,7 +52,18 @@ npm run build  # build de produção
 npm start      # servidor de produção
 npm run lint   # ESLint
 npm test       # regressões de cancelamento e monitoramento, sem serviços reais
+npm run validar:busca  # comparação com a fonte real; gera output/validacao-busca.json
 ```
+
+A busca considera o período de **publicação** e encontra qualquer uma das
+palavras no objeto, complemento ou nome do órgão, ignorando caixa e acentos.
+Resultados são consultados em lotes; use **Continuar busca nas publicações
+restantes** até concluir o período. Enquanto houver páginas ou falhas da fonte,
+a tela informa que a busca está incompleta. O CSV contém os resultados já encontrados.
+
+A validação ao vivo compara os IDs da fonte com os retornados pela rota e pela
+continuação da busca. Para escolher outro dia: `npm run validar:busca -- 20261019`.
+O login e a sessão do usuário no deploy precisam ser conferidos separadamente.
 
 ## Cron
 

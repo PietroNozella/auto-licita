@@ -8,7 +8,8 @@ import { ResultsTable } from "@/components/results-table"
 import { ExportButton } from "@/components/export-button"
 import { MonitorCard } from "@/components/monitor-card"
 import { NotificationBadge } from "@/components/notification-badge"
-import { MODALIDADES, itemContemAlgumTermo } from "@/lib/pncp-api"
+import { MODALIDADES } from "@/lib/pncp-api"
+import { buscarLoteLicitacoes } from "@/lib/busca-licitacoes"
 import { paraDataIso } from "@/lib/utils"
 import type { RecuperarCompraPublicacaoDTO, Monitoramento } from "@/types/pncp"
 import { useAuth } from "@/components/auth-provider"
@@ -47,6 +48,10 @@ export default function Dashboard() {
   const [notificacoesNaoLidas, setNotificacoesNaoLidas] = useState(0)
   const [erro, setErro] = useState("")
   const [avisoBusca, setAvisoBusca] = useState("")
+  const [proximaPagina, setProximaPagina] = useState<number | null>(null)
+  const [registrosConsultados, setRegistrosConsultados] = useState(0)
+  const [fonteParcial, setFonteParcial] = useState(false)
+  const buscaController = useRef<AbortController | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [searchVersion, setSearchVersion] = useState(0)
   const [ultimaBusca, setUltimaBusca] = useState<SearchParamsState | null>(null)
@@ -100,45 +105,40 @@ export default function Dashboard() {
     carregarNotificacoes()
   }, [carregarMonitoramentos, carregarNotificacoes])
 
-  async function handleSearch(params: SearchParamsState) {
+  useEffect(() => () => buscaController.current?.abort(), [])
+
+  async function handleSearch(params: SearchParamsState, paginaInicial = 1) {
+    buscaController.current?.abort()
+    const controller = new AbortController()
+    buscaController.current = controller
+    const continuacao = paginaInicial > 1
     setLoading(true)
     setErro("")
     setAvisoBusca("")
     setHasSearched(true)
     setUltimaBusca(params)
-    setSearchVersion((version) => version + 1)
+    if (!continuacao) {
+      setSearchVersion((version) => version + 1)
+      setResults([])
+      setTotal(0)
+      setTotalRegistros(null)
+      setRegistrosConsultados(0)
+      setFonteParcial(false)
+      setProximaPagina(1)
+    }
     try {
-      const searchParams = new URLSearchParams()
-      searchParams.set("dataInicial", params.dataInicial)
-      searchParams.set("dataFinal", params.dataFinal)
-      searchParams.set("pagina", "1")
-      searchParams.set("tamanhoPagina", "50")
-      if (params.modalidade) searchParams.set("codigoModalidadeContratacao", params.modalidade)
-      if (params.uf) searchParams.set("uf", params.uf)
-      if (params.cnpj) searchParams.set("cnpj", params.cnpj)
-
-      const res = await fetch(`/api/pncp/search?${searchParams.toString()}`)
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error ?? "Erro na busca")
-      }
-      const data = await res.json()
-
-      if (data.parcial) {
-        setAvisoBusca(
-          `A busca está incompleta: ${data.modalidadesComFalha} modalidade(s) não responderam. Os resultados exibidos podem não incluir todas as licitações do período.`
-        )
-      }
-
-      let items = data.data ?? []
-      if (params.query.trim()) {
-        const palavras = params.query.toLowerCase().split(" ").filter(Boolean)
-        items = items.filter((item: RecuperarCompraPublicacaoDTO) => itemContemAlgumTermo(item, palavras))
-      }
-
+      const data = await buscarLoteLicitacoes(params, paginaInicial, controller.signal)
+      if (controller.signal.aborted) return
+      const unicos = new Map((continuacao ? results : []).map((item) => [item.numeroControlePNCP, item]))
+      for (const item of data.itens) unicos.set(item.numeroControlePNCP, item)
+      const items = [...unicos.values()].sort((a, b) => b.dataPublicacaoPncp.localeCompare(a.dataPublicacaoPncp))
       setResults(items)
       setTotal(items.length)
-      setTotalRegistros(typeof data.totalRegistros === "number" ? data.totalRegistros : items.length)
+      setTotalRegistros((anterior) => Math.max(continuacao ? anterior ?? 0 : 0, data.totalRegistros))
+      setRegistrosConsultados((anterior) => (continuacao ? anterior : 0) + data.registrosConsultados)
+      setProximaPagina(data.proximaPagina)
+      setFonteParcial((anterior) => (continuacao && anterior) || data.parcial)
+      if (data.erro) setAvisoBusca("A consulta foi interrompida. Os resultados já encontrados foram preservados; continue a busca para tentar novamente.")
 
       // Espelha a busca na URL para preservar os campos ao voltar de /monitoramentos.
       const urlParams = new URLSearchParams()
@@ -150,12 +150,10 @@ export default function Dashboard() {
       if (params.cnpj) urlParams.set("cnpj", params.cnpj)
       window.history.replaceState(null, "", `${window.location.pathname}?${urlParams.toString()}`)
     } catch (error) {
+      if (controller.signal.aborted) return
       setErro(error instanceof Error ? error.message : "Erro ao buscar licitações")
-      setResults([])
-      setTotal(0)
-      setTotalRegistros(null)
     } finally {
-      setLoading(false)
+      if (buscaController.current === controller) setLoading(false)
     }
   }
 
@@ -226,7 +224,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-semibold text-zinc-700 uppercase tracking-wider">Buscar licitações</h2>
             <p className="text-sm text-zinc-500 mt-1">Consulte publicações por período, modalidade, UF ou órgão.</p>
           </div>
-          <SearchForm onSearch={handleSearch} loading={loading} initial={buscaInicial ?? undefined} />
+          <SearchForm onSearch={(params) => handleSearch(params)} loading={loading} initial={buscaInicial ?? undefined} />
         </section>
 
         {erro && (
@@ -238,6 +236,12 @@ export default function Dashboard() {
         {avisoBusca && (
           <div role="status" className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
             {avisoBusca}
+          </div>
+        )}
+
+        {fonteParcial && (
+          <div role="status" className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+            Algumas modalidades não responderam. A busca está incompleta; refaça a consulta para conferir os resultados que faltam.
           </div>
         )}
 
@@ -270,7 +274,21 @@ export default function Dashboard() {
             </div>
             <ExportButton data={results} />
           </div>
-          <ResultsTable key={searchVersion} data={results} total={total} totalRegistros={totalRegistros ?? undefined} hasSearched={hasSearched} pageSize={8} />
+          {hasSearched && (
+            <p role="status" className="mb-3 text-sm text-zinc-500">
+              {registrosConsultados} publicações consultadas
+              {totalRegistros != null && ` de ${totalRegistros} no período e filtros selecionados`}.
+              {proximaPagina !== null && " Ainda há publicações para consultar."}
+            </p>
+          )}
+          <ResultsTable key={searchVersion} data={results} total={total} hasSearched={hasSearched}
+            buscaCompleta={proximaPagina === null && !fonteParcial && !erro} loading={loading} pageSize={8} />
+          {proximaPagina !== null && ultimaBusca && (
+            <button type="button" disabled={loading} onClick={() => handleSearch(ultimaBusca, proximaPagina)}
+              className="mt-4 rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50">
+              {loading ? "Consultando publicações..." : "Continuar busca nas publicações restantes"}
+            </button>
+          )}
         </section>
 
         <section id="monitores" className="scroll-mt-20 bg-white rounded-xl border border-zinc-200 p-4">

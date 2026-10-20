@@ -1,28 +1,7 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
 import { test } from "node:test"
-import { runInNewContext } from "node:vm"
 import { createClient } from "@supabase/supabase-js"
-import ts from "typescript"
-
-// Carrega o TypeScript com as dependências externas substituídas, sem acessar serviços reais.
-function carregarModulo(arquivo, imports = {}, globals = {}) {
-  const testModule = { exports: {} }
-  const { outputText } = ts.transpileModule(readFileSync(arquivo, "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
-  })
-  runInNewContext(outputText, {
-    module: testModule,
-    exports: testModule.exports,
-    require: (nome) => {
-      assert.ok(nome in imports, `Import não configurado: ${nome}`)
-      return imports[nome]
-    },
-    AbortSignal, URLSearchParams, Error, setTimeout, clearTimeout,
-    ...globals,
-  }, { filename: arquivo })
-  return testModule.exports
-}
+import { carregarModulo } from "./helpers/carregar-modulo.mjs"
 
 const item = {
   numeroControlePNCP: "12345678000190-1-000001/2026",
@@ -45,7 +24,7 @@ function aguardarCancelamento(signal) {
 function carregarMonitor(pncp) {
   return carregarModulo("src/lib/monitor-check.ts", {
     "@/lib/utils": { dataSp: () => "2026-10-20" },
-    "./pncp-api": pncp,
+    "./pncp-api": { extrairTermosBusca: carregarModulo("src/lib/pncp-api.ts").extrairTermosBusca, ...pncp },
   })
 }
 

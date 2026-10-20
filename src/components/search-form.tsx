@@ -96,6 +96,11 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
         </button>
       </div>
 
+      <p className="text-xs text-zinc-500">
+        Busca por qualquer uma das palavras no objeto, complemento ou nome do órgão, sem diferenciar acentos.
+        {" "}Período de publicação: {dataInicial.split("-").reverse().join("/")} a {dataFinal.split("-").reverse().join("/")}.
+      </p>
+
       {showFilters && (
         <div className="grid grid-cols-1 gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-2 lg:grid-cols-5">
           <div>
@@ -103,6 +108,8 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
             <input
               id="data-inicial"
               type="date"
+              required
+              max={dataFinal}
               value={dataInicial}
               onChange={(e) => setDataInicial(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -113,6 +120,8 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
             <input
               id="data-final"
               type="date"
+              required
+              min={dataInicial}
               value={dataFinal}
               onChange={(e) => setDataFinal(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

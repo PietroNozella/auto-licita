@@ -8,8 +8,9 @@ import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Landmark, MapPin
 interface ResultsTableProps {
   data: RecuperarCompraPublicacaoDTO[]
   total?: number
-  totalRegistros?: number
   hasSearched?: boolean
+  buscaCompleta?: boolean
+  loading?: boolean
   pageSize?: number
 }
 
@@ -26,7 +27,7 @@ function getPageItems(data: RecuperarCompraPublicacaoDTO[], page: number, pageSi
   return data.slice(start, start + pageSize)
 }
 
-export function ResultsTable({ data, total, totalRegistros, hasSearched = true, pageSize = 8 }: ResultsTableProps) {
+export function ResultsTable({ data, total, hasSearched = true, buscaCompleta = true, loading = false, pageSize = 8 }: ResultsTableProps) {
   const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize))
   const currentPage = Math.min(page, totalPages)
@@ -39,10 +40,13 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
     return (
       <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-12 text-center">
         <p className="text-base font-medium text-zinc-600">
-          {hasSearched ? "Nenhuma licitação encontrada" : "Faça uma busca para listar licitações"}
+          {!hasSearched ? "Faça uma busca para listar licitações" : loading ? "Consultando publicações..."
+            : buscaCompleta ? "Nenhuma licitação encontrada" : "Nenhuma correspondência nas publicações consultadas"}
         </p>
         <p className="text-sm text-zinc-500 mt-1">
-          {hasSearched ? "Tente ajustar os filtros da busca" : "Use palavra-chave, período e filtros para consultar as licitações"}
+          {!hasSearched ? "Use palavra-chave, período e filtros para consultar as licitações"
+            : loading ? "Os resultados aparecerão ao concluir esta etapa da busca."
+              : buscaCompleta ? "Tente ajustar os filtros da busca" : "A busca ainda está incompleta. Continue a consulta ou tente novamente."}
         </p>
       </div>
     )
@@ -54,9 +58,7 @@ export function ResultsTable({ data, total, totalRegistros, hasSearched = true, 
         <p className="text-sm text-zinc-500">
           Exibindo <span className="font-medium text-zinc-700">{startItem}-{endItem}</span> de{" "}
           <span className="font-medium text-zinc-700">{count}</span> licitaç{count !== 1 ? "ões" : "ão"}
-          {totalRegistros != null && totalRegistros > data.length && (
-            <span className="text-zinc-500"> (total geral: {totalRegistros}; listando os {data.length} mais recentes)</span>
-          )}
+          {!buscaCompleta && <span> — busca incompleta</span>}
         </p>
         {totalPages > 1 && (
           <p className="text-xs text-zinc-500">Página {currentPage} de {totalPages}</p>
