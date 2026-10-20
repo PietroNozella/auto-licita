@@ -29,6 +29,13 @@ Crie o `.env.local` a partir do `.env.example`:
 | `CRON_SECRET` | Protege a rota do cron |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account da exportação |
 | `GOOGLE_PRIVATE_KEY` | Chave da service account, com `\n` escapado |
+| `NEXT_PUBLIC_SIGNUP_ENABLED` | Habilita o cadastro no app quando `true` (padrão: desativado) |
+| `NEXT_PUBLIC_SHEETS_ENABLED` | Habilita a exportação para Sheets quando `true` (padrão: desativado) |
+
+Para um teste fechado, desative também **Allow new users to sign up** no painel
+do Supabase, em **Authentication → Sign In / Providers**, e crie a conta do
+testador pelo painel. A flag do app não bloqueia o endpoint direto do Supabase.
+Alterações nas variáveis `NEXT_PUBLIC_*` exigem um novo build/deploy.
 
 Para exportar para o Google Sheets, compartilhe a planilha de destino com o
 email da service account.
@@ -44,6 +51,7 @@ npm run dev    # desenvolvimento
 npm run build  # build de produção
 npm start      # servidor de produção
 npm run lint   # ESLint
+npm test       # regressões de cancelamento e monitoramento, sem serviços reais
 ```
 
 ## Cron
