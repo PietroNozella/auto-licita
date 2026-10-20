@@ -46,6 +46,7 @@ export default function Dashboard() {
   const [monitoramentos, setMonitoramentos] = useState<Monitoramento[]>([])
   const [notificacoesNaoLidas, setNotificacoesNaoLidas] = useState(0)
   const [erro, setErro] = useState("")
+  const [avisoBusca, setAvisoBusca] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
   const [searchVersion, setSearchVersion] = useState(0)
   const [ultimaBusca, setUltimaBusca] = useState<SearchParamsState | null>(null)
@@ -102,6 +103,7 @@ export default function Dashboard() {
   async function handleSearch(params: SearchParamsState) {
     setLoading(true)
     setErro("")
+    setAvisoBusca("")
     setHasSearched(true)
     setUltimaBusca(params)
     setSearchVersion((version) => version + 1)
@@ -121,6 +123,12 @@ export default function Dashboard() {
         throw new Error(err.error ?? "Erro na busca")
       }
       const data = await res.json()
+
+      if (data.parcial) {
+        setAvisoBusca(
+          `A busca está incompleta: ${data.modalidadesComFalha} modalidade(s) não responderam. Os resultados exibidos podem não incluir todas as licitações do período.`
+        )
+      }
 
       let items = data.data ?? []
       if (params.query.trim()) {
@@ -224,6 +232,12 @@ export default function Dashboard() {
         {erro && (
           <div role="alert" className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
             {erro}
+          </div>
+        )}
+
+        {avisoBusca && (
+          <div role="status" className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+            {avisoBusca}
           </div>
         )}
 

@@ -25,6 +25,15 @@ interface JanelaBusca {
   dataFinal: string
   tamanhoPagina?: number
   maxPaginas?: number
+  signal?: AbortSignal
+}
+
+export interface ResultadoBuscaMonitor {
+  itens: RecuperarCompraPublicacaoDTO[]
+  /** true quando havia mais páginas e o limite de páginas foi atingido. */
+  truncado: boolean
+  /** true quando alguma modalidade falhou e o resultado está incompleto. */
+  parcial: boolean
 }
 
 // Busca itens novos para um monitoramento sem gravar: pagina, filtra por
@@ -33,12 +42,17 @@ export async function buscarNovosDoMonitor(
   supabase: SupabaseClient,
   monitor: MonitorFiltros,
   janela: JanelaBusca
-): Promise<RecuperarCompraPublicacaoDTO[]> {
+): Promise<ResultadoBuscaMonitor> {
   const tamanhoPagina = janela.tamanhoPagina ?? 50
-  const maxPaginas = janela.maxPaginas ?? 5
+  const maxPaginas = janela.maxPaginas ?? 10
+  const signal = janela.signal ?? AbortSignal.timeout(30_000)
 
   const itens: RecuperarCompraPublicacaoDTO[] = []
+  let truncado = false
+  let parcial = false
+
   for (let pagina = 1; pagina <= maxPaginas; pagina++) {
+    signal.throwIfAborted()
     const response = await buscarContratacoesPorPublicacao({
       dataInicial: janela.dataInicial,
       dataFinal: janela.dataFinal,
@@ -48,10 +62,12 @@ export async function buscarNovosDoMonitor(
       cnpj: monitor.cnpj_orgao ? monitor.cnpj_orgao.replace(/\D/g, "") : undefined,
       pagina,
       tamanhoPagina,
-    })
-    const dados = response.data ?? []
-    itens.push(...dados)
-    if (dados.length < tamanhoPagina) break
+    }, signal)
+    signal.throwIfAborted()
+    if (response.parcial) parcial = true
+    itens.push(...(response.data ?? []))
+    if ((response.paginasRestantes ?? 0) <= 0) break
+    if (pagina === maxPaginas) truncado = true
   }
 
   // Mesma regra da busca manual: divide em palavras (OR) e inclui o nome do órgão.
@@ -60,27 +76,36 @@ export async function buscarNovosDoMonitor(
   const filtrados = termos.length > 0
     ? itens.filter((item) => itemContemAlgumTermo(item, termos))
     : itens
-  if (filtrados.length === 0) return []
+  if (filtrados.length === 0) return { itens: [], truncado, parcial }
 
-  const { data: existentes } = await supabase
+  const { data: existentes, error: erroExistentes } = await supabase
     .from("resultados_licitacoes")
     .select("numero_controle_pncp")
     .eq("monitoramento_id", monitor.id)
     .in("numero_controle_pncp", filtrados.map((item) => item.numeroControlePNCP))
+    .abortSignal(signal)
+    .retry(false)
+  signal.throwIfAborted()
+  if (erroExistentes) throw erroExistentes
   const vistos = new Set((existentes ?? []).map((e) => e.numero_controle_pncp as string))
-  return filtrados.filter((item) => !vistos.has(item.numeroControlePNCP))
+  return {
+    itens: filtrados.filter((item) => !vistos.has(item.numeroControlePNCP)),
+    truncado,
+    parcial,
+  }
 }
 
-// Persiste os itens e retorna as linhas gravadas. Conflito global sem a
-// migration 003 (edital já vinculado a outro monitor) é pulado sem erro.
+// Persiste os itens e retorna as linhas gravadas; duplicatas são ignoradas.
 // Estado de leitura vive em resultados_licitacoes.notificado (marcar-lida).
 export async function persistirResultados(
   supabase: SupabaseClient,
   monitoramentoId: string,
-  itens: RecuperarCompraPublicacaoDTO[]
+  itens: RecuperarCompraPublicacaoDTO[],
+  signal: AbortSignal = AbortSignal.timeout(30_000)
 ): Promise<Record<string, unknown>[]> {
   const gravados: Record<string, unknown>[] = []
   for (const item of itens) {
+    signal.throwIfAborted()
     const { data: inserted, error } = await supabase
       .from("resultados_licitacoes")
       .insert({
@@ -99,9 +124,20 @@ export async function persistirResultados(
         notificado: false,
       })
       .select()
+      .abortSignal(signal)
+      .retry(false)
       .single()
 
-    if (error || !inserted) continue
+    signal.throwIfAborted()
+    if (error) {
+      // Conflito neste monitor é duplicata esperada (ex.: duas verificações
+      // simultâneas); qualquer outro erro precisa chegar ao chamador.
+      if ((error as { code?: string }).code === "23505") continue
+      throw new Error(`Falha ao gravar resultado ${item.numeroControlePNCP}: ${error.message}`)
+    }
+    if (!inserted) {
+      throw new Error(`Falha ao gravar resultado ${item.numeroControlePNCP}: retorno vazio`)
+    }
 
     gravados.push(inserted as Record<string, unknown>)
   }

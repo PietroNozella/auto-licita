@@ -99,10 +99,15 @@ export function MonitorCard({ monitoramentos, onCreated }: MonitorCardProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Não foi possível buscar as novidades.")
+      const aviso = data.truncado
+        ? " (busca incompleta — havia mais páginas)"
+        : data.parcial
+          ? " (fonte instável — resultado parcial)"
+          : ""
       setNovidades((prev) => ({
         ...prev,
         [m.id]: {
-          texto: data.novos > 0 ? `${data.novos} novidade(s) de hoje` : "Nada novo hoje",
+          texto: `${data.novos > 0 ? `${data.novos} novidade(s) de hoje` : "Nada novo hoje"}${aviso}`,
           novos: data.novos ?? 0,
         },
       }))
