@@ -27,26 +27,26 @@ const EXPORT_HEADERS = [
   "Data Publicação",
   "Data Abertura",
   "Data Encerramento",
-  "Link Edital",
+  "Link Edital"
 ]
 
 function formatRow(item: RecuperarCompraPublicacaoDTO): Record<string, string | number | boolean | null> {
   return {
-    "Objeto": item.objetoCompra ?? null,
-    "Órgão": item.orgaoEntidade?.razaoSocial ?? null,
+    Objeto: item.objetoCompra ?? null,
+    Órgão: item.orgaoEntidade?.razaoSocial ?? null,
     "CNPJ Órgão": item.orgaoEntidade?.cnpj ?? null,
-    "Modalidade": item.modalidadeNome ?? null,
-    "UF": item.unidadeOrgao?.ufSigla ?? null,
-    "Município": item.unidadeOrgao?.municipioNome ?? null,
+    Modalidade: item.modalidadeNome ?? null,
+    UF: item.unidadeOrgao?.ufSigla ?? null,
+    Município: item.unidadeOrgao?.municipioNome ?? null,
     "Valor Estimado": item.valorTotalEstimado ?? null,
     "Valor Homologado": item.valorTotalHomologado ?? null,
     "Número de Controle": item.numeroControlePNCP ?? null,
     "Número Compra": item.numeroCompra ?? null,
-    "Processo": item.processo ?? null,
+    Processo: item.processo ?? null,
     "Data Publicação": item.dataPublicacaoPncp ?? null,
     "Data Abertura": item.dataAberturaProposta ?? null,
     "Data Encerramento": item.dataEncerramentoProposta ?? null,
-    "Link Edital": item.linkSistemaOrigem ?? null,
+    "Link Edital": item.linkSistemaOrigem ?? null
   }
 }
 
@@ -83,8 +83,8 @@ export function ExportButton({ data }: ExportButtonProps) {
         body: JSON.stringify({
           headers: EXPORT_HEADERS,
           rows,
-          filename: `licitacoes-${sufixoData}.csv`,
-        }),
+          filename: `licitacoes-${sufixoData}.csv`
+        })
       })
       if (!res.ok) throw new Error("Não foi possível gerar o CSV.")
       const blob = await res.blob()
@@ -129,8 +129,8 @@ export function ExportButton({ data }: ExportButtonProps) {
           spreadsheetId,
           sheetName,
           headers: EXPORT_HEADERS,
-          rows,
-        }),
+          rows
+        })
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
@@ -153,21 +153,34 @@ export function ExportButton({ data }: ExportButtonProps) {
           type="button"
           onClick={exportCSV}
           disabled={exportandoCSV}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-zinc-300 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 min-h-11 py-2 rounded-md border border-zinc-500 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50"
         >
-          {csvOk
-            ? <Check className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
-            : <Download className="h-3.5 w-3.5" aria-hidden="true" />}
+          {csvOk ? (
+            <Check className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
+          ) : (
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
           {exportandoCSV ? "Gerando..." : csvOk ? "Baixado" : "CSV"}
         </button>
-        <button
-          type="button"
-          onClick={copyJSON}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-zinc-300 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
-        >
-          {copied ? <Check className="h-3.5 w-3.5 text-green-600" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
-          {copied ? "Copiado" : "JSON"}
-        </button>
+        <details className="relative">
+          <summary className="flex min-h-11 cursor-pointer items-center rounded-md px-3 text-sm text-zinc-600 hover:bg-zinc-100">
+            Mais formatos
+          </summary>
+          <div className="absolute right-0 top-full z-20 mt-1 min-w-40 rounded-lg border border-zinc-200 bg-white p-2 shadow-md">
+            <button
+              type="button"
+              onClick={copyJSON}
+              className="inline-flex items-center gap-1.5 px-3 min-h-11 py-2 rounded-md border border-zinc-500 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              {copied ? "Copiado" : "JSON"}
+            </button>
+          </div>
+        </details>
         {sheetsEnabled && (
           <button
             type="button"
@@ -175,7 +188,7 @@ export function ExportButton({ data }: ExportButtonProps) {
               setErro("")
               setShowSheetModal(true)
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-green-300 text-sm text-green-700 hover:bg-green-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 min-h-11 py-2 rounded-md border border-green-300 text-sm text-green-700 hover:bg-green-50 transition-colors"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />
             Google Sheets
@@ -183,12 +196,19 @@ export function ExportButton({ data }: ExportButtonProps) {
         )}
       </div>
 
-      {!showSheetModal && erro && <p role="alert" className="mt-2 text-sm text-red-600">{erro}</p>}
+      {!showSheetModal && erro && (
+        <p role="alert" className="mt-2 text-sm text-red-600">
+          {erro}
+        </p>
+      )}
 
       {showSheetModal && (
         <Modal titulo="Exportar para Google Sheets" onClose={() => setShowSheetModal(false)}>
           {erro && (
-            <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div
+              role="alert"
+              className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
               {erro}
             </div>
           )}
@@ -203,7 +223,7 @@ export function ExportButton({ data }: ExportButtonProps) {
                 value={sheetUrl}
                 onChange={(e) => setSheetUrl(e.target.value)}
                 placeholder="https://docs.google.com/spreadsheets/d/..."
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded-md border border-zinc-500 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -215,7 +235,7 @@ export function ExportButton({ data }: ExportButtonProps) {
                 type="text"
                 value={sheetName}
                 onChange={(e) => setSheetName(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded-md border border-zinc-500 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>

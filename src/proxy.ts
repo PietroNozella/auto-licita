@@ -8,6 +8,8 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/cadastro") ||
+    pathname === "/recuperar-senha" ||
+    pathname === "/redefinir-senha" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/cron/verificar") ||
     pathname.startsWith("/_next") ||

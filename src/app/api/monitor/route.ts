@@ -37,9 +37,7 @@ export async function POST(request: NextRequest) {
       ? body.palavras_chave.filter((p: unknown) => typeof p === "string")
       : []
     // A API consultada só opera com 14 dígitos; máscara é limpa na gravação.
-    const cnpjOrgao = typeof body.cnpj_orgao === "string"
-      ? body.cnpj_orgao.replace(/\D/g, "") || null
-      : null
+    const cnpjOrgao = typeof body.cnpj_orgao === "string" ? body.cnpj_orgao.replace(/\D/g, "") || null : null
     const { data, error } = await supabase
       .from("monitoramentos")
       .insert({
@@ -48,7 +46,7 @@ export async function POST(request: NextRequest) {
         palavras_chave: palavras,
         uf: typeof body.uf === "string" && body.uf ? body.uf : null,
         modalidade_id: typeof body.modalidade_id === "number" ? body.modalidade_id : null,
-        cnpj_orgao: cnpjOrgao,
+        cnpj_orgao: cnpjOrgao
       })
       .select()
       .single()
@@ -79,7 +77,8 @@ export async function PATCH(request: NextRequest) {
       update.palavras_chave = body.palavras_chave.filter((p: unknown) => typeof p === "string")
     }
     if (typeof body.uf === "string") update.uf = body.uf || null
-    if (typeof body.modalidade_id === "number") update.modalidade_id = body.modalidade_id
+    if (typeof body.modalidade_id === "number" || body.modalidade_id === null)
+      update.modalidade_id = body.modalidade_id
     if (typeof body.cnpj_orgao === "string") {
       update.cnpj_orgao = body.cnpj_orgao.replace(/\D/g, "") || null
     }
@@ -114,11 +113,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: "id é obrigatório" }, { status: 400 })
     }
-    const { error } = await supabase
-      .from("monitoramentos")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId)
+    const { error } = await supabase.from("monitoramentos").delete().eq("id", id).eq("user_id", userId)
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, type ReactNode } from "react"
+import { X } from "lucide-react"
 
 const FOCAVEL =
   "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])"
@@ -16,17 +17,27 @@ interface ModalProps {
 export function Modal({ titulo, onClose, children }: ModalProps) {
   const tituloId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose)
+  useEffect(() => {
+    closeRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     const gatilho = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
     const container = containerRef.current
     if (container) {
-      container.querySelector<HTMLElement>(FOCAVEL)?.focus()
+      const initial =
+        container.querySelector<HTMLElement>("input, select, textarea") ??
+        container.querySelector<HTMLElement>("button")
+      if (initial) initial.focus()
+      else container.focus()
     }
 
     function noTeclado(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        onClose()
+        closeRef.current()
         return
       }
       if (e.key !== "Tab" || !container) return
@@ -35,7 +46,7 @@ export function Modal({ titulo, onClose, children }: ModalProps) {
       const atual = document.activeElement
       const primeiro = focaveis[0]
       const ultimo = focaveis[focaveis.length - 1]
-      if (e.shiftKey && atual === primeiro) {
+      if (e.shiftKey && (atual === primeiro || atual === container || !container.contains(atual))) {
         e.preventDefault()
         ultimo.focus()
       } else if (!e.shiftKey && (atual === ultimo || !container.contains(atual))) {
@@ -47,9 +58,10 @@ export function Modal({ titulo, onClose, children }: ModalProps) {
     window.addEventListener("keydown", noTeclado)
     return () => {
       window.removeEventListener("keydown", noTeclado)
+      document.body.style.overflow = previousOverflow
       gatilho?.focus()
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div
@@ -63,11 +75,22 @@ export function Modal({ titulo, onClose, children }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        tabIndex={-1}
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl sm:p-6"
       >
-        <h3 id={tituloId} className="text-lg font-semibold text-zinc-800">
-          {titulo}
-        </h3>
+        <div className="flex items-start justify-between gap-3">
+          <h3 id={tituloId} className="pt-2 text-lg font-semibold text-zinc-800">
+            {titulo}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar diálogo"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
         {children}
       </div>
     </div>

@@ -1,240 +1,255 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import Link from "next/link"
-import { AppNav } from "@/components/app-nav"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { ExternalLink } from "lucide-react"
+import { AppShell } from "@/components/app-shell"
+import { MonitorCard } from "@/components/monitor-card"
+import { Deadline } from "@/components/deadline"
 import type { Monitoramento, ResultadoLicitacao } from "@/types/pncp"
 import { formatCurrency, formatDateShort } from "@/lib/utils"
-import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+
+type Status = "loading" | "success" | "error"
 
 export default function MonitoramentosPage() {
   const [monitoramentos, setMonitoramentos] = useState<Monitoramento[]>([])
-  const [resultados, setResultados] = useState<Map<string, ResultadoLicitacao[]>>(new Map())
-  const [activeTab, setActiveTab] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState("")
+  const [resultados, setResultados] = useState<Record<string, ResultadoLicitacao[]>>({})
+  const [naoLidas, setNaoLidas] = useState<Record<string, number>>({})
+  const [totais, setTotais] = useState<Record<string, number>>({})
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [monitorStatus, setMonitorStatus] = useState<Status>("loading")
+  const [resultStatus, setResultStatus] = useState<Status>("loading")
+  const [erroAcao, setErroAcao] = useState("")
   const [marcandoId, setMarcandoId] = useState<string | null>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
 
-  const carregarDados = useCallback(async () => {
-    setErro("")
-    setLoading(true)
+  const carregarMonitores = useCallback(async () => {
+    setMonitorStatus("loading")
     try {
-      const res = await fetch("/api/monitor/resultados")
-      if (!res.ok) throw new Error("Não foi possível carregar os monitoramentos.")
-      const data = await res.json()
-      setMonitoramentos(data.monitoramentos ?? [])
-      setActiveTab((current) =>
-        current && data.monitoramentos?.some((m: Monitoramento) => m.id === current)
-          ? current
-          : data.monitoramentos?.[0]?.id ?? null
-      )
-      const mapa = new Map<string, ResultadoLicitacao[]>()
-      for (const m of data.monitoramentos ?? []) {
-        if (data.resultados?.[m.id]) {
-          mapa.set(m.id, data.resultados[m.id])
-        }
-      }
-      setResultados(mapa)
-    } catch (error) {
-      setErro(error instanceof Error ? error.message : "Erro ao carregar monitoramentos.")
-    } finally {
-      setLoading(false)
+      const res = await fetch("/api/monitor")
+      if (!res.ok) throw new Error()
+      const data: Monitoramento[] = await res.json()
+      setMonitoramentos(data)
+      setActiveId((current) => (data.some((m) => m.id === current) ? current : (data[0]?.id ?? null)))
+      setMonitorStatus("success")
+    } catch {
+      setMonitorStatus("error")
     }
   }, [])
 
-  useEffect(() => {
-    // Adia a carga inicial para fora do corpo do effect e evita setState síncrono no mount.
-    queueMicrotask(() => {
-      void carregarDados()
-    })
-  }, [carregarDados])
-
-  async function marcarLida(id: string) {
-    setErro("")
-    setMarcandoId(id)
+  const carregarResultados = useCallback(async () => {
+    setResultStatus("loading")
     try {
-      const res = await fetch(`/api/monitor/resultados/marcar-lida`, {
+      const res = await fetch("/api/monitor/resultados")
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setResultados(data.resultados ?? {})
+      setNaoLidas(data.naoLidas ?? {})
+      setTotais(data.totais ?? {})
+      setResultStatus("success")
+    } catch {
+      setResultStatus("error")
+    }
+  }, [])
+
+  const recarregar = useCallback(async () => {
+    await Promise.all([carregarMonitores(), carregarResultados()])
+  }, [carregarMonitores, carregarResultados])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void recarregar()
+    })
+  }, [recarregar])
+
+  async function marcarLida(r: ResultadoLicitacao) {
+    setErroAcao("")
+    setMarcandoId(r.id)
+    try {
+      const res = await fetch("/api/monitor/resultados/marcar-lida", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id: r.id })
       })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error ?? "Erro ao marcar como lida.")
-      }
-      // Atualiza o item localmente: sem recarregar a grade nem perder o contexto.
-      setResultados((prev) => {
-        const proximo = new Map(prev)
-        for (const [monitorId, lista] of proximo) {
-          if (lista.some((r) => r.id === id)) {
-            proximo.set(monitorId, lista.map((r) => (r.id === id ? { ...r, notificado: true } : r)))
-          }
-        }
-        return proximo
-      })
-    } catch (error) {
-      setErro(error instanceof Error ? error.message : "Erro ao marcar resultado como lido.")
+      if (!res.ok) throw new Error()
+      setResultados((prev) => ({
+        ...prev,
+        [r.monitoramento_id]: (prev[r.monitoramento_id] ?? []).map((item) =>
+          item.id === r.id ? { ...item, notificado: true } : item
+        )
+      }))
+      setNaoLidas((prev) => ({
+        ...prev,
+        [r.monitoramento_id]: Math.max(0, (prev[r.monitoramento_id] ?? 0) - 1)
+      }))
+    } catch {
+      setErroAcao("Não foi possível marcar a publicação como lida. Tente novamente.")
     } finally {
       setMarcandoId(null)
     }
   }
 
-  const activeResults = activeTab ? resultados.get(activeTab) ?? [] : []
+  function selecionar(id: string) {
+    setActiveId(id)
+    setErroAcao("")
+    requestAnimationFrame(() => {
+      headingRef.current?.focus()
+      headingRef.current?.scrollIntoView({ block: "start" })
+    })
+  }
+
+  const selected = monitoramentos.find((m) => m.id === activeId)
+  const activeResults = activeId ? (resultados[activeId] ?? []) : []
+  const unread =
+    resultStatus === "success" ? Object.values(naoLidas).reduce((sum, count) => sum + count, 0) : null
 
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="bg-ink">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/" aria-label="Voltar para o dashboard" className="text-zinc-300 hover:text-white transition-colors">
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-          </Link>
-          <h1 className="text-xl font-bold text-white">Monitoramentos</h1>
-          <div className="ml-auto hidden md:block">
-            <AppNav />
-          </div>
-        </div>
-        <div className="border-t border-white/10 px-4 py-2 md:hidden">
-          <div className="max-w-5xl mx-auto">
-            <AppNav />
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        {erro && (
-          <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {erro}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center text-sm text-zinc-500">
-            Carregando monitoramentos...
-          </div>
-        ) : monitoramentos.length === 0 ? (
-          <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
-            <p className="text-zinc-500">Nenhum monitoramento criado ainda.</p>
-            <Link href="/" className="text-blue-600 text-sm hover:underline mt-2 inline-block">
-              Criar no dashboard
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div
-              className="lg:col-span-1 space-y-1"
-              role="tablist"
-              aria-label="Monitoramentos"
-              aria-orientation="vertical"
-              onKeyDown={(e) => {
-                if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return
-                const abas = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
-                const atual = abas.indexOf(document.activeElement as HTMLButtonElement)
-                if (atual === -1) return
-                e.preventDefault()
-                const destino =
-                  e.key === "Home" ? 0
-                  : e.key === "End" ? abas.length - 1
-                  : e.key === "ArrowDown" || e.key === "ArrowRight" ? Math.min(abas.length - 1, atual + 1)
-                  : Math.max(0, atual - 1)
-                const alvo = abas[destino]
-                alvo.click()
-                alvo.focus()
-              }}
-            >
-              {monitoramentos.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  id={`aba-${m.id}`}
-                  role="tab"
-                  aria-selected={activeTab === m.id}
-                  aria-controls="painel-resultados"
-                  tabIndex={activeTab === m.id ? 0 : -1}
-                  onClick={() => setActiveTab(m.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                    activeTab === m.id
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-zinc-600 hover:bg-zinc-100"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="truncate">{m.nome}</span>
-                    {m.ativo ? (
-                      <Eye className="h-3.5 w-3.5 text-green-500 shrink-0" aria-hidden="true" />
-                    ) : (
-                      <EyeOff className="h-3.5 w-3.5 text-zinc-300 shrink-0" aria-hidden="true" />
-                    )}
-                  </div>
-                  <span className="text-[10px] text-zinc-500">
-                    {resultados.get(m.id)?.length ?? 0} resultados
-                  </span>
-                </button>
-              ))}
+    <AppShell unread={unread} notificationError={resultStatus === "error"}>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Monitoramentos</h1>
+        <p className="mt-1 text-sm text-zinc-600">
+          Gerencie seus filtros e acompanhe as publicações encontradas.
+        </p>
+      </div>
+      <div className="grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <MonitorCard
+          monitoramentos={monitoramentos}
+          loading={monitorStatus === "loading"}
+          error={monitorStatus === "error"}
+          onRetry={carregarMonitores}
+          selectedId={activeId}
+          onSelect={selecionar}
+          unreadByMonitor={resultStatus === "success" ? naoLidas : null}
+          notificationsLoading={resultStatus === "loading"}
+          onCreated={recarregar}
+        />
+        <section aria-labelledby="titulo-publicacoes" className="min-w-0 space-y-4">
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            id="titulo-publicacoes"
+            className="scroll-mt-36 break-words text-lg font-semibold outline-none md:scroll-mt-24"
+          >
+            {selected ? `Publicações de ${selected.nome}` : "Publicações encontradas"}
+          </h2>
+          {selected && (
+            <p className="text-sm text-zinc-600">
+              {selected.ativo ? "Monitoramento ativo" : "Monitoramento pausado"}
+              {resultStatus === "success" && ` · ${naoLidas[selected.id] ?? 0} não lidas`}
+            </p>
+          )}
+          {erroAcao && (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              {erroAcao}
+            </p>
+          )}
+          {resultStatus === "loading" ? (
+            <p role="status" className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
+              Carregando publicações…
+            </p>
+          ) : resultStatus === "error" ? (
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              <p>
+                Não foi possível carregar as publicações e suas contagens. Seus monitoramentos podem continuar
+                sendo gerenciados.
+              </p>
+              <button
+                type="button"
+                onClick={carregarResultados}
+                className="mt-2 min-h-11 rounded-lg border border-red-700 px-3 font-medium"
+              >
+                Tentar novamente
+              </button>
             </div>
-
-            <div
-              className="lg:col-span-3"
-              id="painel-resultados"
-              role="tabpanel"
-              aria-labelledby={`aba-${activeTab ?? ""}`}
-            >
-              {activeResults.length === 0 ? (
-                <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
-                  <p className="text-zinc-500">Nenhum resultado encontrado para este monitoramento.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
+          ) : monitorStatus === "success" && !selected ? (
+            <p className="rounded-xl border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-600">
+              Após criar um monitoramento, as novas publicações aparecerão aqui.
+            </p>
+          ) : selected && activeResults.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-600">
+              Nenhuma publicação salva neste monitoramento. Use “Verificar hoje” para consultar as novidades
+              do dia.
+            </p>
+          ) : (
+            selected && (
+              <>
+                {(totais[selected.id] ?? 0) > activeResults.length && (
+                  <p className="text-sm text-zinc-600">
+                    Exibindo as {activeResults.length} publicações mais recentes de {totais[selected.id]}. A
+                    contagem de não lidas inclui todo o histórico.
+                  </p>
+                )}
+                <div className="space-y-3">
                   {activeResults.map((r) => (
-                    <div
+                    <article
                       key={r.id}
-                      className={`bg-white rounded-xl border p-4 transition-colors ${
-                        r.notificado ? "border-zinc-200" : "border-blue-300 bg-blue-50/30"
-                      }`}
+                      className={`rounded-xl border bg-white p-4 ${r.notificado ? "border-zinc-200" : "border-blue-400"}`}
                     >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-zinc-800">{r.objeto_compra}</p>
-                          <p className="text-xs text-zinc-500 mt-0.5">{r.orgao_nome}</p>
-                          <div className="flex flex-wrap gap-2 mt-2 text-xs text-zinc-500">
-                            <span>{r.uf}</span>
-                            <span>{r.modalidade_nome}</span>
-                            {r.valor_total_estimado != null && (
-                              <span className="font-mono">{formatCurrency(r.valor_total_estimado)}</span>
-                            )}
-                            <span>{r.data_publicacao ? formatDateShort(r.data_publicacao) : ""}</span>
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        {!r.notificado && (
+                          <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800">
+                            Nova
+                          </span>
+                        )}
+                        <span className="text-xs text-zinc-600">
+                          {r.uf} · {r.modalidade_nome}
+                        </span>
+                      </div>
+                      <h3 className="break-words text-base font-semibold leading-snug text-zinc-900">
+                        {r.objeto_compra}
+                      </h3>
+                      <p className="mt-1 text-sm text-zinc-600">{r.orgao_nome}</p>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs text-zinc-600">Encerramento da proposta</p>
+                          <div className="mt-1">
+                            <Deadline value={r.data_encerramento_proposta} />
                           </div>
                         </div>
-                        <div className="flex gap-1 shrink-0">
-                          {!r.notificado && (
-                            <button
-                              type="button"
-                              onClick={() => marcarLida(r.id)}
-                              disabled={marcandoId === r.id}
-                              className="rounded bg-blue-100 px-3 py-2.5 text-xs font-medium text-blue-700 hover:bg-blue-200 disabled:opacity-50 transition-colors"
-                            >
-                              {marcandoId === r.id ? "Marcando..." : "Marcar lida"}
-                            </button>
-                          )}
+                        <div>
+                          <p className="text-xs text-zinc-600">Valor estimado</p>
+                          <p className="mt-1 text-sm font-semibold tabular-nums">
+                            {r.valor_total_estimado != null
+                              ? formatCurrency(r.valor_total_estimado)
+                              : "Não informado"}
+                          </p>
+                          <p className="mt-2 text-xs text-zinc-600">
+                            Publicação:{" "}
+                            {r.data_publicacao ? formatDateShort(r.data_publicacao) : "Não informada"}
+                          </p>
                         </div>
                       </div>
-                      {r.link && (
-                        <a
-                          href={r.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline mt-2 inline-block"
-                        >
-                          Ver edital original →
-                        </a>
-                      )}
-                    </div>
+                      <div className="mt-4 flex flex-col gap-2 border-t border-zinc-200 pt-3 sm:flex-row sm:justify-end">
+                        {!r.notificado && (
+                          <button
+                            type="button"
+                            onClick={() => marcarLida(r)}
+                            disabled={marcandoId !== null}
+                            className="min-h-11 rounded-lg border border-zinc-500 px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                          >
+                            {marcandoId === r.id ? "Marcando…" : "Marcar como lida"}
+                          </button>
+                        )}
+                        {r.link && (
+                          <a
+                            href={r.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Abrir edital de ${r.objeto_compra}`}
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-blue-700 px-3 text-sm font-medium text-blue-800 hover:bg-blue-50"
+                          >
+                            Abrir edital
+                            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                    </article>
                   ))}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+              </>
+            )
+          )}
+        </section>
+      </div>
+    </AppShell>
   )
 }

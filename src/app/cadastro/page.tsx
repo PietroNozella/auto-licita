@@ -1,13 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { FileSearch, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { Brand } from "@/components/brand"
 import { traduzirErroAuth } from "@/lib/auth-erros"
 
 export default function CadastroPage() {
-  const router = useRouter()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -37,13 +36,12 @@ export default function CadastroPage() {
       const res = await fetch("/api/auth/cadastro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(traduzirErroAuth(data.error ?? "Erro ao cadastrar"))
 
-      setSuccess("Conta criada com sucesso! Redirecionando para o login...")
-      setTimeout(() => router.push("/login"), 1500)
+      setSuccess("Conta criada. Se necessário, confirme seu email antes de entrar.")
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Erro ao cadastrar")
     } finally {
@@ -55,8 +53,8 @@ export default function CadastroPage() {
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
-          <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
-          <h1 className="text-xl font-bold text-zinc-800">Afero</h1>
+          <Brand large />
+          <h1 className="sr-only">Cadastro no Afero</h1>
           <p className="text-sm text-zinc-500 mt-2">O cadastro público está desativado.</p>
           <Link href="/login" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
             Ir para o login
@@ -70,27 +68,35 @@ export default function CadastroPage() {
     <div className="min-h-screen bg-paper flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <FileSearch className="h-10 w-10 text-blue-600 mx-auto mb-3" />
-          <h1 className="text-xl font-bold text-zinc-800">Afero</h1>
-          <p className="text-sm text-zinc-500 mt-1">Crie sua conta para usar o dashboard</p>
+          <Brand large />
+          <h1 className="mt-4 text-xl font-semibold text-zinc-800">Criar sua conta</h1>
+          <p className="text-sm text-zinc-600 mt-1">Busque e monitore licitações públicas.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
           {erro && (
-            <div role="alert" className="flex items-start gap-2 text-sm text-red-700 bg-red-50 rounded-lg p-3">
+            <div
+              role="alert"
+              className="flex items-start gap-2 text-sm text-red-700 bg-red-50 rounded-lg p-3"
+            >
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>{erro}</span>
             </div>
           )}
           {success && (
-            <div role="alert" className="flex items-start gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-3">
+            <div
+              role="status"
+              className="flex items-start gap-2 text-sm text-green-800 bg-green-50 rounded-lg p-3"
+            >
               <CheckCircle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>{success}</span>
             </div>
           )}
 
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-zinc-600 mb-1">Nome (opcional)</label>
+            <label htmlFor="name" className="block text-sm font-medium text-zinc-600 mb-1">
+              Nome (opcional)
+            </label>
             <input
               id="name"
               type="text"
@@ -98,12 +104,14 @@ export default function CadastroPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Seu nome"
               autoComplete="name"
-              className="w-full px-3 py-2.5 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 rounded-lg border border-zinc-500 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-zinc-600 mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-zinc-600 mb-1">
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -112,12 +120,14 @@ export default function CadastroPage() {
               placeholder="seu@email.com"
               autoComplete="email"
               required
-              className="w-full px-3 py-2.5 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 rounded-lg border border-zinc-500 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-zinc-600 mb-1">Senha</label>
+            <label htmlFor="password" className="block text-sm font-medium text-zinc-600 mb-1">
+              Senha
+            </label>
             <div className="relative">
               <input
                 id="password"
@@ -128,23 +138,27 @@ export default function CadastroPage() {
                 autoComplete="new-password"
                 required
                 minLength={6}
-                className="w-full px-3 py-2.5 pr-11 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 pr-11 rounded-lg border border-zinc-500 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 type="button"
                 onClick={() => setMostrarSenha(!mostrarSenha)}
                 aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-zinc-500 hover:text-zinc-600"
+                className="absolute right-0 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded text-zinc-600"
               >
-                {mostrarSenha
-                  ? <EyeOff className="h-4 w-4" aria-hidden="true" />
-                  : <Eye className="h-4 w-4" aria-hidden="true" />}
+                {mostrarSenha ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                )}
               </button>
             </div>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-600 mb-1">Confirmar senha</label>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-600 mb-1">
+              Confirmar senha
+            </label>
             <input
               id="confirmPassword"
               type="password"
@@ -154,21 +168,23 @@ export default function CadastroPage() {
               autoComplete="new-password"
               required
               minLength={6}
-              className="w-full px-3 py-2.5 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 rounded-lg border border-zinc-500 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading || !!success}
-            className="w-full py-2.5 bg-ink text-white rounded-lg text-sm font-medium hover:bg-ink-hover disabled:opacity-50 transition-colors"
+            className="min-h-11 w-full py-2.5 bg-ink text-white rounded-lg text-sm font-medium hover:bg-ink-hover disabled:opacity-50 transition-colors"
           >
             {loading ? "Cadastrando..." : "Criar Conta"}
           </button>
 
-          <p className="text-center text-sm text-zinc-500">
+          <p className="text-center text-sm text-zinc-600">
             Já tem conta?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">Fazer login</Link>
+            <Link href="/login" className="inline-flex min-h-11 items-center text-blue-700 hover:underline">
+              {success ? "Continuar para o login" : "Fazer login"}
+            </Link>
           </p>
         </form>
       </div>

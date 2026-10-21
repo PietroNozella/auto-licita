@@ -1,110 +1,126 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Search, SlidersHorizontal } from "lucide-react"
-import { cn, dataSp, paraDataIso } from "@/lib/utils"
+import { dataSp, paraDataIso } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
+import type { FiltrosBusca } from "@/lib/busca-licitacoes"
 
-interface SearchFormProps {
-  onSearch: (params: {
-    query: string
-    dataInicial: string
-    dataFinal: string
-    modalidade: string
-    uf: string
-    cnpj: string
-  }) => void
-  loading?: boolean
-  initial?: {
-    query: string
-    dataInicial: string
-    dataFinal: string
-    modalidade: string
-    uf: string
-    cnpj: string
-  }
+function mascararCnpj(value: string) {
+  return value
+    .replace(/\D/g, "")
+    .slice(0, 14)
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2")
 }
 
-export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
+export function SearchForm({
+  onSearch,
+  loading,
+  initial
+}: {
+  onSearch: (params: FiltrosBusca) => void
+  loading?: boolean
+  initial?: FiltrosBusca
+}) {
   const [query, setQuery] = useState(initial?.query ?? "")
-  const [dataInicial, setDataInicial] = useState(() => {
-    if (initial?.dataInicial) return paraDataIso(initial.dataInicial)
-    return dataSp(30)
-  })
-  const [dataFinal, setDataFinal] = useState(() => {
-    if (initial?.dataFinal) return paraDataIso(initial.dataFinal)
-    return dataSp()
-  })
+  const [dataInicial, setDataInicial] = useState(() =>
+    initial?.dataInicial ? paraDataIso(initial.dataInicial) : dataSp(30)
+  )
+  const [dataFinal, setDataFinal] = useState(() =>
+    initial?.dataFinal ? paraDataIso(initial.dataFinal) : dataSp()
+  )
   const [modalidade, setModalidade] = useState(initial?.modalidade ?? "")
   const [uf, setUf] = useState(initial?.uf ?? "")
-  const [cnpj, setCnpj] = useState(initial?.cnpj ?? "")
-  const [showFilters, setShowFilters] = useState(() =>
-    Boolean(initial?.modalidade || initial?.uf || initial?.cnpj)
-  )
-
+  const [cnpj, setCnpj] = useState(() => mascararCnpj(initial?.cnpj ?? ""))
+  const [cnpjTouched, setCnpjTouched] = useState(false)
+  const cnpjRef = useRef<HTMLInputElement>(null)
+  const [showFilters, setShowFilters] = useState(Boolean(initial?.modalidade || initial?.uf || initial?.cnpj))
   const filtrosAtivos = [modalidade, uf, cnpj].filter(Boolean).length
+  const cnpjInvalido = cnpj.length > 0 && cnpj.replace(/\D/g, "").length !== 14
+  const periodo = [7, 30, 90].find((days) => dataInicial === dataSp(days) && dataFinal === dataSp())
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (cnpjInvalido) {
+      setCnpjTouched(true)
+      setShowFilters(true)
+      requestAnimationFrame(() => cnpjRef.current?.focus())
+      return
+    }
     onSearch({
       query,
       dataInicial: dataInicial.replace(/-/g, ""),
       dataFinal: dataFinal.replace(/-/g, ""),
       modalidade,
       uf,
-      // Máscara é aceita no campo; a API consultada só opera com dígitos.
-      cnpj: cnpj.replace(/\D/g, ""),
+      cnpj: cnpj.replace(/\D/g, "")
     })
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-2 lg:grid-cols-[1fr_auto_auto]">
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
         <div className="relative">
-          <label htmlFor="search-query" className="sr-only">Buscar licitações</label>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden="true" />
+          <label htmlFor="search-query" className="sr-only">
+            Objeto, palavra-chave ou órgão
+          </label>
+          <Search
+            className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500"
+            aria-hidden="true"
+          />
           <input
             id="search-query"
-            type="text"
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por objeto, palavra-chave ou órgão"
-            className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Objeto, palavra-chave ou órgão"
+            className="w-full rounded-lg border border-zinc-500 bg-white py-3 pl-10 pr-3 text-base sm:text-sm"
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="rounded-lg bg-ink px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ink-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-11 rounded-lg bg-blue-700 px-6 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Buscando..." : "Buscar"}
+          {loading ? "Buscando…" : "Buscar licitações"}
         </button>
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          aria-label={showFilters ? "Ocultar filtros" : "Mostrar filtros"}
           aria-expanded={showFilters}
-          className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors",
-            showFilters
-              ? "border-blue-300 bg-blue-50 text-blue-700"
-              : "border-zinc-300 text-zinc-600 hover:bg-zinc-50"
-          )}
+          aria-controls="filtros-adicionais"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-500 px-4 text-sm text-zinc-700 hover:bg-zinc-50"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
           Filtros{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ""}
         </button>
       </div>
-
-      <p className="text-xs text-zinc-500">
-        Busca por qualquer uma das palavras no objeto, complemento ou nome do órgão, sem diferenciar acentos.
-        {" "}Período de publicação: {dataInicial.split("-").reverse().join("/")} a {dataFinal.split("-").reverse().join("/")}.
-      </p>
-
-      {showFilters && (
-        <div className="grid grid-cols-1 gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-2 lg:grid-cols-5">
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-sm font-medium text-zinc-700">Período de publicação</legend>
+        <div className="flex flex-wrap gap-2">
+          {[7, 30, 90].map((days) => (
+            <button
+              key={days}
+              type="button"
+              aria-pressed={periodo === days}
+              onClick={() => {
+                setDataInicial(dataSp(days))
+                setDataFinal(dataSp())
+              }}
+              className={`min-h-11 rounded-lg border px-3 text-sm ${periodo === days ? "border-blue-700 bg-blue-50 font-medium text-blue-800" : "border-zinc-500 text-zinc-700 hover:bg-zinc-50"}`}
+            >
+              Últimos {days} dias
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:max-w-lg sm:grid-cols-2">
           <div>
-            <label htmlFor="data-inicial" className="mb-1 block text-xs font-medium text-zinc-500">Data inicial</label>
+            <label htmlFor="data-inicial" className="mb-1 block text-sm text-zinc-600">
+              De
+            </label>
             <input
               id="data-inicial"
               type="date"
@@ -112,11 +128,13 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
               max={dataFinal}
               value={dataInicial}
               onChange={(e) => setDataInicial(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-h-11 w-full min-w-0 rounded-lg border border-zinc-500 bg-white px-3 text-base sm:text-sm"
             />
           </div>
           <div>
-            <label htmlFor="data-final" className="mb-1 block text-xs font-medium text-zinc-500">Data final</label>
+            <label htmlFor="data-final" className="mb-1 block text-sm text-zinc-600">
+              Até
+            </label>
             <input
               id="data-final"
               type="date"
@@ -124,47 +142,71 @@ export function SearchForm({ onSearch, loading, initial }: SearchFormProps) {
               min={dataInicial}
               value={dataFinal}
               onChange={(e) => setDataFinal(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-h-11 w-full min-w-0 rounded-lg border border-zinc-500 bg-white px-3 text-base sm:text-sm"
             />
           </div>
+        </div>
+      </fieldset>
+      {showFilters && (
+        <div id="filtros-adicionais" className="grid gap-3 border-t border-zinc-200 pt-4 sm:grid-cols-3">
           <div>
-            <label htmlFor="modalidade" className="mb-1 block text-xs font-medium text-zinc-500">Modalidade</label>
+            <label htmlFor="modalidade" className="mb-1 block text-sm text-zinc-600">
+              Modalidade
+            </label>
             <select
               id="modalidade"
               value={modalidade}
               onChange={(e) => setModalidade(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-h-11 w-full rounded-lg border border-zinc-500 bg-white px-3 text-base sm:text-sm"
             >
               <option value="">Todas</option>
               {MODALIDADES.map((m) => (
-                <option key={m.id} value={m.id}>{m.nome}</option>
+                <option key={m.id} value={m.id}>
+                  {m.nome}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label htmlFor="uf" className="mb-1 block text-xs font-medium text-zinc-500">UF</label>
+            <label htmlFor="uf" className="mb-1 block text-sm text-zinc-600">
+              UF
+            </label>
             <select
               id="uf"
               value={uf}
               onChange={(e) => setUf(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-h-11 w-full rounded-lg border border-zinc-500 bg-white px-3 text-base sm:text-sm"
             >
               <option value="">Todas</option>
               {UF_LIST.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label htmlFor="cnpj" className="mb-1 block text-xs font-medium text-zinc-500">CNPJ do órgão</label>
+            <label htmlFor="cnpj" className="mb-1 block text-sm text-zinc-600">
+              CNPJ do órgão
+            </label>
             <input
+              ref={cnpjRef}
               id="cnpj"
               type="text"
+              inputMode="numeric"
               value={cnpj}
-              onChange={(e) => setCnpj(e.target.value)}
+              onChange={(e) => setCnpj(mascararCnpj(e.target.value))}
+              onBlur={() => setCnpjTouched(true)}
               placeholder="00.000.000/0000-00"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-invalid={cnpjTouched && cnpjInvalido}
+              aria-describedby={cnpjTouched && cnpjInvalido ? "cnpj-erro" : undefined}
+              className="min-h-11 w-full rounded-lg border border-zinc-500 bg-white px-3 text-base sm:text-sm"
             />
+            {cnpjTouched && cnpjInvalido && (
+              <p id="cnpj-erro" className="mt-1 text-sm text-red-700">
+                Informe os 14 dígitos do CNPJ.
+              </p>
+            )}
           </div>
         </div>
       )}

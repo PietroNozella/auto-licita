@@ -1,176 +1,229 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { RecuperarCompraPublicacaoDTO } from "@/types/pncp"
 import { formatCurrency, formatDate, formatDateShort } from "@/lib/utils"
-import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Landmark, MapPin } from "lucide-react"
+import { ordenarLicitacoes, type OrdemResultados } from "@/lib/ordenar-licitacoes"
+import { Deadline } from "@/components/deadline"
+import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 
-interface ResultsTableProps {
+function dataLabel(value?: string) {
+  return value && !Number.isNaN(Date.parse(value)) ? formatDateShort(value) : "Não informada"
+}
+
+export function ResultsTable({
+  data,
+  buscaCompleta = true,
+  loading = false,
+  pageSize = 8,
+  resetVersion = 0
+}: {
   data: RecuperarCompraPublicacaoDTO[]
-  total?: number
-  hasSearched?: boolean
   buscaCompleta?: boolean
   loading?: boolean
   pageSize?: number
-}
-
-function getEstimatedValue(item: RecuperarCompraPublicacaoDTO) {
-  return item.valorTotalEstimado != null ? formatCurrency(item.valorTotalEstimado) : "Valor não informado"
-}
-
-function getDateLabel(dateString?: string) {
-  return dateString ? formatDateShort(dateString) : "Não informado"
-}
-
-function getPageItems(data: RecuperarCompraPublicacaoDTO[], page: number, pageSize: number) {
-  const start = (page - 1) * pageSize
-  return data.slice(start, start + pageSize)
-}
-
-export function ResultsTable({ data, total, hasSearched = true, buscaCompleta = true, loading = false, pageSize = 8 }: ResultsTableProps) {
-  const [page, setPage] = useState(1)
+  resetVersion?: number
+}) {
+  const [pagination, setPagination] = useState({ page: 1, version: resetVersion })
+  const page = pagination.version === resetVersion ? pagination.page : 1
+  const [ordem, setOrdem] = useState<OrdemResultados>("publicacao")
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
+  const inicioRef = useRef<HTMLDivElement>(null)
+  const ordenados = useMemo(() => ordenarLicitacoes(data, ordem, now), [data, ordem, now])
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const pageItems = useMemo(() => getPageItems(data, currentPage, pageSize), [data, currentPage, pageSize])
-  const startItem = data.length === 0 ? 0 : (currentPage - 1) * pageSize + 1
-  const endItem = Math.min(currentPage * pageSize, data.length)
-  const count = total ?? data.length
+  const pageItems = ordenados.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  if (data.length === 0) {
+  function mudarPagina(next: number) {
+    setPagination({ page: next, version: resetVersion })
+    requestAnimationFrame(() => {
+      inicioRef.current?.focus()
+      inicioRef.current?.scrollIntoView({ block: "start" })
+    })
+  }
+
+  if (data.length === 0)
     return (
-      <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-12 text-center">
-        <p className="text-base font-medium text-zinc-600">
-          {!hasSearched ? "Faça uma busca para listar licitações" : loading ? "Consultando publicações..."
-            : buscaCompleta ? "Nenhuma licitação encontrada" : "Nenhuma correspondência nas publicações consultadas"}
+      <div role="status" className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center">
+        <p className="font-medium text-zinc-700">
+          {loading
+            ? "Consultando publicações…"
+            : buscaCompleta
+              ? "Nenhuma licitação encontrada"
+              : "Nenhuma correspondência nas publicações verificadas"}
         </p>
-        <p className="text-sm text-zinc-500 mt-1">
-          {!hasSearched ? "Use palavra-chave, período e filtros para consultar as licitações"
-            : loading ? "Os resultados aparecerão ao concluir esta etapa da busca."
-              : buscaCompleta ? "Tente ajustar os filtros da busca" : "A busca ainda está incompleta. Continue a consulta ou tente novamente."}
+        <p className="mt-2 text-sm text-zinc-600">
+          {loading
+            ? "Aguarde a conclusão desta etapa."
+            : buscaCompleta
+              ? "Tente ajustar o período ou os filtros."
+              : "Continue a verificação para consultar as publicações restantes."}
         </p>
       </div>
     )
-  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2 border-b border-zinc-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-zinc-500">
-          Exibindo <span className="font-medium text-zinc-700">{startItem}-{endItem}</span> de{" "}
-          <span className="font-medium text-zinc-700">{count}</span> licitaç{count !== 1 ? "ões" : "ão"}
-          {!buscaCompleta && <span> — busca incompleta</span>}
-        </p>
-        {totalPages > 1 && (
-          <p className="text-xs text-zinc-500">Página {currentPage} de {totalPages}</p>
+    <div className="space-y-3" aria-busy={loading}>
+      <div ref={inicioRef} tabIndex={-1} className="scroll-mt-36 outline-none md:scroll-mt-24">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p role="status" className="text-sm text-zinc-600">
+            Exibindo {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, data.length)} de{" "}
+            {data.length} resultados
+          </p>
+          <div className="flex items-center gap-2">
+            <label htmlFor="ordem-resultados" className="text-sm text-zinc-600">
+              Ordenar por
+            </label>
+            <select
+              id="ordem-resultados"
+              value={ordem}
+              onChange={(e) => {
+                setOrdem(e.target.value as OrdemResultados)
+                setPagination({ page: 1, version: resetVersion })
+              }}
+              className="min-h-11 rounded-lg border border-zinc-500 bg-white px-3 text-sm"
+            >
+              <option value="publicacao">Publicação recente</option>
+              <option value="encerramento">Encerramento próximo</option>
+              <option value="valor">Maior valor estimado</option>
+            </select>
+          </div>
+        </div>
+        {!buscaCompleta && (
+          <p className="mt-2 text-xs text-zinc-600">
+            A ordenação considera apenas os resultados já encontrados.
+          </p>
         )}
       </div>
-
-      <div className="space-y-3">
+      <div
+        className="hidden grid-cols-[minmax(0,1fr)_9rem_11rem_8rem] gap-5 px-4 text-xs font-semibold text-zinc-600 lg:grid"
+        aria-hidden="true"
+      >
+        <span>Objeto e órgão</span>
+        <span>Valor estimado</span>
+        <span>Encerramento da proposta</span>
+        <span>Ação</span>
+      </div>
+      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
         {pageItems.map((item) => (
-          <article key={item.numeroControlePNCP} className="rounded-lg border border-zinc-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/20">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  {item.modalidadeNome && (
-                    <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{item.modalidadeNome}</span>
-                  )}
-                  {item.unidadeOrgao?.ufSigla && (
-                    <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                      <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                      {item.unidadeOrgao.ufSigla}
-                    </span>
-                  )}
-                  {item.situacaoCompraNome && (
-                    <span className="rounded bg-zinc-100 px-2 py-1 text-xs text-zinc-600">{item.situacaoCompraNome}</span>
-                  )}
-                </div>
-
-                <h3 className="mt-3 text-base font-semibold leading-snug text-zinc-800">
+          <article key={item.numeroControlePNCP} className="border-b border-zinc-200 p-4 last:border-b-0">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_9rem_11rem_8rem] lg:gap-5">
+              <div className="min-w-0">
+                <h3 className="line-clamp-3 text-base font-semibold leading-snug text-zinc-900">
                   {item.objetoCompra}
                 </h3>
-
-                <div className="mt-3 flex flex-col gap-1.5 text-sm text-zinc-500 sm:flex-row sm:flex-wrap sm:gap-x-4">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Landmark className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                    {item.orgaoEntidade?.razaoSocial ?? "Órgão não informado"}
-                  </span>
-                  {item.unidadeOrgao?.municipioNome && (
-                    <span>{item.unidadeOrgao.municipioNome}</span>
+                <p className="mt-1 text-sm text-zinc-600">
+                  {item.orgaoEntidade?.razaoSocial ?? "Órgão não informado"}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-zinc-600">
+                  {item.unidadeOrgao?.ufSigla && (
+                    <span>
+                      {[item.unidadeOrgao.municipioNome, item.unidadeOrgao.ufSigla]
+                        .filter(Boolean)
+                        .join(" / ")}
+                    </span>
                   )}
-                  {item.numeroCompra && <span className="font-mono text-xs">Compra {item.numeroCompra}</span>}
+                  {item.modalidadeNome && (
+                    <span className="rounded bg-zinc-100 px-2 py-0.5">{item.modalidadeNome}</span>
+                  )}
+                  {item.situacaoCompraNome && <span>{item.situacaoCompraNome}</span>}
                 </div>
               </div>
-
-              <div className="grid shrink-0 grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-3 text-sm lg:w-80">
-                <div>
-                  <p className="text-xs text-zinc-500">Valor estimado</p>
-                  <p className="mt-1 font-mono font-semibold text-zinc-800">{getEstimatedValue(item)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-500">Publicação</p>
-                  <p className="mt-1 text-zinc-700">{getDateLabel(item.dataPublicacaoPncp)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-500">Abertura</p>
-                  <p className="mt-1 text-zinc-700">{getDateLabel(item.dataAberturaProposta)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-500">Encerramento</p>
-                  <p className="mt-1 text-zinc-700">{getDateLabel(item.dataEncerramentoProposta)}</p>
-                </div>
+              <div>
+                <p className="mb-1 text-xs text-zinc-600 lg:sr-only">Valor estimado</p>
+                <p className="text-sm font-semibold tabular-nums text-zinc-800">
+                  {item.valorTotalEstimado != null
+                    ? formatCurrency(item.valorTotalEstimado)
+                    : "Não informado"}
+                </p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs text-zinc-600 lg:sr-only">Encerramento da proposta</p>
+                <Deadline value={item.dataEncerramentoProposta} />
+              </div>
+              <div>
+                {item.linkSistemaOrigem ? (
+                  <a
+                    href={item.linkSistemaOrigem}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-blue-700 px-3 text-sm font-medium text-blue-800 hover:bg-blue-50"
+                    aria-label={`Abrir edital de ${item.objetoCompra}`}
+                  >
+                    Abrir edital
+                    <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  </a>
+                ) : (
+                  <p className="text-sm text-zinc-600">Link não informado</p>
+                )}
               </div>
             </div>
-
-            <div className="mt-4 flex flex-col gap-3 border-t border-zinc-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
-                <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                Atualizado em {item.dataAtualizacao ? formatDate(item.dataAtualizacao) : "data não informada"}
-              </div>
-              {item.linkSistemaOrigem && (
-                <a
-                  href={item.linkSistemaOrigem}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
-                  aria-label={`Abrir edital de ${item.objetoCompra}`}
-                >
-                  Abrir edital
-                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                </a>
+            <details className="mt-2 text-sm text-zinc-600">
+              <summary className="w-fit cursor-pointer py-3 font-medium text-zinc-700">
+                Detalhes da licitação
+              </summary>
+              <p className="max-w-4xl whitespace-pre-line break-words">{item.objetoCompra}</p>
+              {item.informacaoComplementar && (
+                <p className="mt-2 max-w-4xl whitespace-pre-line break-words">
+                  {item.informacaoComplementar}
+                </p>
               )}
-            </div>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <dt>Publicação</dt>
+                  <dd className="mt-1 text-zinc-800">{dataLabel(item.dataPublicacaoPncp)}</dd>
+                </div>
+                <div>
+                  <dt>Abertura da proposta</dt>
+                  <dd className="mt-1 text-zinc-800">{dataLabel(item.dataAberturaProposta)}</dd>
+                </div>
+                <div>
+                  <dt>Última atualização</dt>
+                  <dd className="mt-1 text-zinc-800">
+                    {item.dataAtualizacao && !Number.isNaN(Date.parse(item.dataAtualizacao))
+                      ? formatDate(item.dataAtualizacao)
+                      : "Não informada"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Número de controle PNCP</dt>
+                  <dd className="mt-1 break-all text-zinc-800">{item.numeroControlePNCP}</dd>
+                </div>
+              </dl>
+            </details>
           </article>
         ))}
       </div>
-
       {totalPages > 1 && (
-        <nav className="flex flex-col gap-3 border-t border-zinc-100 pt-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de licitações">
-          <p className="text-sm text-zinc-500">
-            {data.length} resultado{data.length !== 1 ? "s" : ""} nesta busca
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              Anterior
-            </button>
-            <span className="min-w-20 text-center text-sm text-zinc-500">
-              {currentPage}/{totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Próxima
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
+        <nav
+          aria-label="Páginas dos resultados encontrados"
+          className="flex items-center justify-between gap-2"
+        >
+          <button
+            type="button"
+            disabled={currentPage === 1}
+            onClick={() => mudarPagina(currentPage - 1)}
+            className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-zinc-500 bg-white px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            Anterior
+          </button>
+          <span className="text-sm tabular-nums text-zinc-600">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={currentPage === totalPages}
+            onClick={() => mudarPagina(currentPage + 1)}
+            className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-zinc-500 bg-white px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Próxima
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </button>
         </nav>
       )}
     </div>

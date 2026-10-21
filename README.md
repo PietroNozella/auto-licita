@@ -8,9 +8,11 @@ resultados para CSV ou Google Sheets.
 
 - Busca por período, modalidade, UF e CNPJ do órgão, com filtro por palavras
 - Monitoramentos com verificação diária via cron da Vercel
+- Edição dos filtros de monitoramento sem apagar publicações salvas
+- Ordenação por publicação, encerramento e valor estimado
 - Verificação manual de novidades do dia por monitoramento
 - Exportação dos resultados para CSV ou Google Sheets
-- Cadastro e login com Supabase Auth
+- Cadastro, login e recuperação de senha com Supabase Auth
 
 ## Stack
 
@@ -37,6 +39,11 @@ do Supabase, em **Authentication → Sign In / Providers**, e crie a conta do
 testador pelo painel. A flag do app não bloqueia o endpoint direto do Supabase.
 Alterações nas variáveis `NEXT_PUBLIC_*` exigem um novo build/deploy.
 
+Para recuperar senhas, autorize `https://SEU-DOMINIO/api/auth/recuperar-senha`
+em **Authentication → URL Configuration → Redirect URLs** no Supabase
+(em desenvolvimento: `http://localhost:3000/api/auth/recuperar-senha`).
+O link enviado usa PKCE: abra-o no mesmo navegador em que solicitou a recuperação.
+
 Para exportar para o Google Sheets, compartilhe a planilha de destino com o
 email da service account.
 
@@ -57,9 +64,11 @@ npm run validar:busca  # comparação com a fonte real; gera output/validacao-bu
 
 A busca considera o período de **publicação** e encontra qualquer uma das
 palavras no objeto, complemento ou nome do órgão, ignorando caixa e acentos.
-Resultados são consultados em lotes; use **Continuar busca nas publicações
-restantes** até concluir o período. Enquanto houver páginas ou falhas da fonte,
+Resultados são consultados em lotes; use **Verificar mais publicações**
+até concluir o período. Enquanto houver páginas ou falhas da fonte,
 a tela informa que a busca está incompleta. O CSV contém os resultados já encontrados.
+A ordenação considera os resultados já encontrados. Prazos sem offset são
+interpretados no horário de Brasília; datas sem horário valem até o fim do dia informado.
 
 A validação ao vivo compara os IDs da fonte com os retornados pela rota e pela
 continuação da busca. Para escolher outro dia: `npm run validar:busca -- 20261019`.

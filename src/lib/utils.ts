@@ -8,22 +8,27 @@ export function cn(...inputs: ClassValue[]) {
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency: "BRL",
+    currency: "BRL"
   }).format(value)
 }
 
 export function formatDate(dateString: string): string {
   const d = new Date(dateString)
-  const dia = String(d.getDate()).padStart(2, "0")
-  const mes = String(d.getMonth() + 1).padStart(2, "0")
-  const ano = d.getFullYear()
-  const hora = String(d.getHours()).padStart(2, "0")
-  const min = String(d.getMinutes()).padStart(2, "0")
-  return `${dia}/${mes}/${ano} ${hora}:${min}`
+  if (Number.isNaN(d.getTime())) return "Data não informada"
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short"
+  })
+    .format(d)
+    .replace(",", "")
 }
 
 export function formatDateShort(dateString: string): string {
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(dateString))
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString.split("-").reverse().join("/")
+  const d = new Date(dateString)
+  if (Number.isNaN(d.getTime())) return "Data não informada"
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(d)
 }
 
 // Data corrente no fuso de São Paulo, em "yyyy-mm-dd".
@@ -35,7 +40,7 @@ export function dataSp(diasAtras = 0): string {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
     month: "2-digit",
-    day: "2-digit",
+    day: "2-digit"
   }).format(d)
 }
 
