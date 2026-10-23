@@ -33,6 +33,7 @@ Crie o `.env.local` a partir do `.env.example`:
 | `GOOGLE_PRIVATE_KEY` | Chave da service account, com `\n` escapado |
 | `NEXT_PUBLIC_SIGNUP_ENABLED` | Habilita o cadastro no app quando `true` (padrão: desativado) |
 | `NEXT_PUBLIC_SHEETS_ENABLED` | Habilita a exportação para Sheets quando `true` (padrão: desativado) |
+| `NEXT_PUBLIC_SITE_URL` | Opcional: URL pública usada nas imagens de compartilhamento; na Vercel, usa o domínio de produção automaticamente |
 
 Para um teste fechado, desative também **Allow new users to sign up** no painel
 do Supabase, em **Authentication → Sign In / Providers**, e crie a conta do
@@ -70,6 +71,7 @@ npm start      # servidor de produção
 npm run lint   # ESLint
 npm test       # regressões de cancelamento e monitoramento, sem serviços reais
 npm run validar:busca  # comparação com a fonte real; gera output/validacao-busca.json
+npm run gerar:icones   # recria favicon, PNGs e imagem de compartilhamento a partir de src/app/icon.svg
 ```
 
 A busca considera o período de **publicação** e encontra qualquer uma das
