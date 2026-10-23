@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarDays, Pencil, Plus, Trash2 } from "lucide-react"
+import { CalendarDays, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { MODALIDADES, UF_LIST } from "@/lib/pncp-api"
 import { Modal } from "@/components/modal"
@@ -158,7 +158,7 @@ export function MonitorCard({
         type="button"
         onClick={() => abrirEditor("novo")}
         disabled={busy}
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white hover:bg-ink-hover disabled:opacity-50"
       >
         <Plus className="h-4 w-4" aria-hidden="true" />
         Novo monitoramento
@@ -195,7 +195,7 @@ export function MonitorCard({
           {monitoramentos.map((m) => (
             <article
               key={m.id}
-              className={`rounded-xl border p-4 ${selectedId === m.id ? "border-blue-700 bg-blue-50/40" : "border-zinc-200 bg-white"}`}
+              className={`rounded-xl border bg-white p-4 ${selectedId === m.id ? "border-zinc-300 border-l-4 border-l-blue-700 shadow-sm" : "border-zinc-200"}`}
             >
               <h2>
                 <button
@@ -203,9 +203,13 @@ export function MonitorCard({
                   onClick={() => onSelect(m.id)}
                   title={`Ver publicações de ${m.nome}`}
                   aria-pressed={selectedId === m.id}
-                  className="min-h-11 w-full break-words text-left text-base font-semibold text-zinc-900"
+                  className="min-h-11 w-full break-words text-left text-base font-semibold text-zinc-900 hover:text-blue-800"
                 >
-                  {m.nome}
+                  <span className="block">{m.nome}</span>
+                  <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-blue-700">
+                    Ver publicações
+                    <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
                 </button>
               </h2>
               <p className="mt-1 text-sm text-blue-800">
@@ -237,6 +241,23 @@ export function MonitorCard({
                   ? `Última verificação: ${formatDate(m.ultima_verificacao)}`
                   : "Ainda não verificado"}
               </p>
+              {m.status_verificacao_automatica === "incompleta" && (
+                <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  A última verificação automática ficou incompleta. Algumas publicações podem não ter sido
+                  consultadas. Confira o período na busca ou use filtros mais específicos.
+                </p>
+              )}
+              {m.status_verificacao_automatica === "erro" && (
+                <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  A última verificação automática falhou. Os resultados salvos foram mantidos.
+                  Confira o período na busca; “Verificar hoje” consulta apenas as publicações do dia.
+                </p>
+              )}
+              {!m.status_verificacao_automatica && m.ultima_verificacao && (
+                <p className="mt-2 text-xs text-zinc-600">
+                  A completude da última verificação automática ainda não foi registrada.
+                </p>
+              )}
               <div className="mt-3 flex flex-wrap gap-1 border-t border-zinc-200 pt-2">
                 <button
                   type="button"
@@ -398,7 +419,7 @@ export function MonitorCard({
               <button
                 type="submit"
                 disabled={salvando}
-                className="min-h-11 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+                className="min-h-11 rounded-lg bg-ink px-4 text-sm font-semibold text-white hover:bg-ink-hover disabled:opacity-50"
               >
                 {salvando ? "Salvando…" : editor === "novo" ? "Criar monitoramento" : "Salvar alterações"}
               </button>

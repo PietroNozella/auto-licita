@@ -147,6 +147,8 @@ export default function Dashboard() {
   const completouEtapa = totalRegistros !== null
   const buscaCompleta = completouEtapa && proximaPagina === null && !fonteParcial && !avisoBusca
   const modalidade = MODALIDADES.find((m) => String(m.id) === ultimaBusca?.modalidade)?.nome
+  const ativos = monitoramentos.filter((m) => m.ativo).length
+  const pausados = monitoramentos.length - ativos
 
   return (
     <AppShell
@@ -154,12 +156,12 @@ export default function Dashboard() {
       notificationError={notificationStatus === "error"}
     >
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Buscar licitações</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Buscar licitações</h1>
         <p className="mt-1 text-sm text-zinc-600">
           Encontre oportunidades e acompanhe os prazos de proposta.
         </p>
       </div>
-      <section aria-label="Busca e filtros" className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+      <section aria-label="Busca e filtros" className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         {ultimaBusca && (
           <div
             className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${formAberto ? "mb-4 border-b border-zinc-200 pb-4" : ""}`}
@@ -173,7 +175,7 @@ export default function Dashboard() {
                 <p className="mt-1 break-words text-zinc-600">
                   {[modalidade, ultimaBusca.uf, ultimaBusca.cnpj && `CNPJ ${ultimaBusca.cnpj}`]
                     .filter(Boolean)
-                    .join(" ? ")}
+                    .join(" · ")}
                 </p>
               )}
             </div>
@@ -307,7 +309,7 @@ export default function Dashboard() {
             <p className="mt-1 text-sm text-zinc-600">
               {monitoramentos.length === 0
                 ? "Crie um monitoramento para acompanhar novas publicações."
-                : `${monitoramentos.filter((m) => m.ativo).length} ativos · ${monitoramentos.filter((m) => !m.ativo).length} pausados`}
+                : `${ativos} ${ativos === 1 ? "ativo" : "ativos"} · ${pausados} ${pausados === 1 ? "pausado" : "pausados"}`}
               {notificationStatus === "success" && unread !== null && unread > 0
                 ? ` · ${unread} publicações não lidas`
                 : ""}

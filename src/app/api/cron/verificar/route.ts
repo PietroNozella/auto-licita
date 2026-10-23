@@ -63,7 +63,10 @@ export async function GET(request: Request) {
         signal.throwIfAborted()
         const { error: erroAtualizacao } = await supabase
           .from("monitoramentos")
-          .update({ ultima_verificacao: new Date().toISOString() })
+          .update({
+            ultima_verificacao: new Date().toISOString(),
+            status_verificacao_automatica: truncado || parcial ? "incompleta" : "completa",
+          })
           .eq("id", monitor.id)
           .abortSignal(signal)
           .retry(false)
@@ -73,6 +76,18 @@ export async function GET(request: Request) {
           ? "Tempo limite da verificação atingido"
           : error instanceof Error ? error.message : "Erro desconhecido"
         detalhesFalhas.push(`${monitor.id}: ${message}`)
+        // Reserva independente para registrar a falha mesmo após o prazo da consulta.
+        try {
+          const { error: erroStatus } = await supabase
+            .from("monitoramentos")
+            .update({ status_verificacao_automatica: "erro" })
+            .eq("id", monitor.id)
+            .abortSignal(AbortSignal.timeout(3_000))
+            .retry(false)
+          if (erroStatus) throw erroStatus
+        } catch {
+          console.error(`Não foi possível registrar a falha do monitoramento ${monitor.id}`)
+        }
       }
     }
 

@@ -74,7 +74,7 @@ export function ResultsTable({
             Exibindo {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, data.length)} de{" "}
             {data.length} resultados
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
             <label htmlFor="ordem-resultados" className="text-sm text-zinc-600">
               Ordenar por
             </label>
@@ -85,7 +85,7 @@ export function ResultsTable({
                 setOrdem(e.target.value as OrdemResultados)
                 setPagination({ page: 1, version: resetVersion })
               }}
-              className="min-h-11 rounded-lg border border-zinc-500 bg-white px-3 text-sm"
+              className="min-h-11 w-full min-w-0 rounded-lg border border-zinc-500 bg-white px-3 text-base sm:w-auto sm:text-sm"
             >
               <option value="publicacao">Publicação recente</option>
               <option value="encerramento">Encerramento próximo</option>
@@ -99,16 +99,16 @@ export function ResultsTable({
           </p>
         )}
       </div>
-      <div
-        className="hidden grid-cols-[minmax(0,1fr)_9rem_11rem_8rem] gap-5 px-4 text-xs font-semibold text-zinc-600 lg:grid"
-        aria-hidden="true"
-      >
-        <span>Objeto e órgão</span>
-        <span>Valor estimado</span>
-        <span>Encerramento da proposta</span>
-        <span>Ação</span>
-      </div>
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+        <div
+          className="hidden grid-cols-[minmax(0,1fr)_9rem_11rem_8rem] gap-5 border-b border-zinc-200 bg-zinc-50 px-4 py-3 text-xs font-semibold text-zinc-600 lg:grid"
+          aria-hidden="true"
+        >
+          <span>Objeto e órgão</span>
+          <span>Valor estimado</span>
+          <span>Encerramento da proposta</span>
+          <span>Ação</span>
+        </div>
         {pageItems.map((item) => (
           <article key={item.numeroControlePNCP} className="border-b border-zinc-200 p-4 last:border-b-0">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_9rem_11rem_8rem] lg:gap-5">

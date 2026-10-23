@@ -18,6 +18,7 @@
 /out/
 /output/
 /.playwright-cli/
+/supabase/.temp/
 
 # production
 /build

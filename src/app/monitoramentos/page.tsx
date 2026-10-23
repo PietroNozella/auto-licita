@@ -15,6 +15,11 @@ export default function MonitoramentosPage() {
   const [resultados, setResultados] = useState<Record<string, ResultadoLicitacao[]>>({})
   const [naoLidas, setNaoLidas] = useState<Record<string, number>>({})
   const [totais, setTotais] = useState<Record<string, number>>({})
+  const [paginas, setPaginas] = useState<Record<string, number>>({})
+  const [carregandoMaisId, setCarregandoMaisId] = useState<string | null>(null)
+  const [erroMaisId, setErroMaisId] = useState<string | null>(null)
+  const [avisoHistoricoId, setAvisoHistoricoId] = useState<string | null>(null)
+  const versaoResultados = useRef(0)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [monitorStatus, setMonitorStatus] = useState<Status>("loading")
   const [resultStatus, setResultStatus] = useState<Status>("loading")
@@ -37,19 +42,60 @@ export default function MonitoramentosPage() {
   }, [])
 
   const carregarResultados = useCallback(async () => {
+    const versao = ++versaoResultados.current
+    setCarregandoMaisId(null)
+    setErroMaisId(null)
+    setAvisoHistoricoId(null)
     setResultStatus("loading")
     try {
       const res = await fetch("/api/monitor/resultados")
       if (!res.ok) throw new Error()
       const data = await res.json()
+      if (versao !== versaoResultados.current) return false
       setResultados(data.resultados ?? {})
       setNaoLidas(data.naoLidas ?? {})
       setTotais(data.totais ?? {})
+      setPaginas({})
       setResultStatus("success")
+      return true
     } catch {
-      setResultStatus("error")
+      if (versao === versaoResultados.current) setResultStatus("error")
+      return false
     }
   }, [])
+
+  async function carregarMais(id: string) {
+    const versao = versaoResultados.current
+    const pagina = (paginas[id] ?? 1) + 1
+    setCarregandoMaisId(id)
+    setErroMaisId(null)
+    try {
+      const params = new URLSearchParams({ monitoramentoId: id, pagina: String(pagina) })
+      const res = await fetch(`/api/monitor/resultados?${params}`)
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      if (versao !== versaoResultados.current) return
+      if (data.totais[id] !== totais[id]) {
+        if (await carregarResultados()) setAvisoHistoricoId(id)
+        return
+      }
+      const anteriores = new Set((resultados[id] ?? []).map((item) => item.id))
+      const novos: ResultadoLicitacao[] = data.resultados?.[id] ?? []
+      if (!novos.some((item) => !anteriores.has(item.id))) throw new Error()
+      setResultados((prev) => {
+        const itens = new Map((prev[id] ?? []).map((item) => [item.id, item]))
+        for (const item of novos) itens.set(item.id, item)
+        return { ...prev, [id]: [...itens.values()] }
+      })
+      setTotais((prev) => ({ ...prev, [id]: data.totais[id] ?? 0 }))
+      setNaoLidas((prev) => ({ ...prev, [id]: data.naoLidas[id] ?? 0 }))
+      setPaginas((prev) => ({ ...prev, [id]: pagina }))
+    } catch {
+      if (versao === versaoResultados.current) setErroMaisId(id)
+    } finally {
+      if (versao === versaoResultados.current) setCarregandoMaisId(null)
+    }
+  }
 
   const recarregar = useCallback(async () => {
     await Promise.all([carregarMonitores(), carregarResultados()])
@@ -105,10 +151,18 @@ export default function MonitoramentosPage() {
   return (
     <AppShell unread={unread} notificationError={resultStatus === "error"}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Monitoramentos</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Monitoramentos</h1>
         <p className="mt-1 text-sm text-zinc-600">
           Gerencie seus filtros e acompanhe as publicações encontradas.
         </p>
+        {selected && (
+          <a
+            href="#titulo-publicacoes"
+            className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-zinc-500 bg-white px-4 text-sm font-medium text-ink lg:hidden"
+          >
+            Ver publicações
+          </a>
+        )}
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <MonitorCard
@@ -140,6 +194,12 @@ export default function MonitoramentosPage() {
           {erroAcao && (
             <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
               {erroAcao}
+            </p>
+          )}
+          {avisoHistoricoId === activeId && activeId !== null && (
+            <p role="status" className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+              O histórico mudou durante o carregamento. A lista foi atualizada a partir das publicações
+              mais recentes. Use “Carregar mais publicações” para continuar.
             </p>
           )}
           {resultStatus === "loading" ? (
@@ -174,7 +234,7 @@ export default function MonitoramentosPage() {
               <>
                 {(totais[selected.id] ?? 0) > activeResults.length && (
                   <p className="text-sm text-zinc-600">
-                    Exibindo as {activeResults.length} publicações mais recentes de {totais[selected.id]}. A
+                    Exibindo {activeResults.length} de {totais[selected.id]} publicações. A
                     contagem de não lidas inclui todo o histórico.
                   </p>
                 )}
@@ -182,7 +242,7 @@ export default function MonitoramentosPage() {
                   {activeResults.map((r) => (
                     <article
                       key={r.id}
-                      className={`rounded-xl border bg-white p-4 ${r.notificado ? "border-zinc-200" : "border-blue-400"}`}
+                      className={`rounded-xl border bg-white p-4 sm:p-5 ${r.notificado ? "border-zinc-200" : "border-zinc-300 border-l-4 border-l-blue-700"}`}
                     >
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         {!r.notificado && (
@@ -223,7 +283,7 @@ export default function MonitoramentosPage() {
                           <button
                             type="button"
                             onClick={() => marcarLida(r)}
-                            disabled={marcandoId !== null}
+                            disabled={marcandoId !== null || carregandoMaisId !== null}
                             className="min-h-11 rounded-lg border border-zinc-500 px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
                           >
                             {marcandoId === r.id ? "Marcando…" : "Marcar como lida"}
@@ -245,6 +305,24 @@ export default function MonitoramentosPage() {
                     </article>
                   ))}
                 </div>
+                {erroMaisId === selected.id && (
+                  <div role="alert" className="text-sm text-red-800">
+                    <p>Não foi possível carregar mais publicações. As anteriores foram mantidas.</p>
+                    <button type="button" onClick={carregarResultados} className="min-h-11 px-2 font-medium underline">
+                      Atualizar histórico
+                    </button>
+                  </div>
+                )}
+                {activeResults.length < (totais[selected.id] ?? 0) && (
+                  <button
+                    type="button"
+                    onClick={() => carregarMais(selected.id)}
+                    disabled={carregandoMaisId !== null || marcandoId !== null}
+                    className="min-h-11 w-full rounded-lg border border-blue-700 bg-white px-4 text-sm font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50"
+                  >
+                    {carregandoMaisId === selected.id ? "Carregando publicações…" : "Carregar mais publicações"}
+                  </button>
+                )}
               </>
             )
           )}

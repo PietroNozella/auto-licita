@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Brand } from "@/components/brand"
+import { AuthLayout } from "@/components/auth-layout"
 
 export function PasswordRecoveryForm({ reset = false }: { reset?: boolean }) {
   const [email, setEmail] = useState("")
@@ -49,111 +49,103 @@ export function PasswordRecoveryForm({ reset = false }: { reset?: boolean }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper p-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <Brand large />
-          <h1 className="mt-5 text-xl font-semibold text-zinc-900">
-            {reset ? "Definir nova senha" : "Recuperar sua senha"}
-          </h1>
-          <p className="mt-2 text-sm text-zinc-600">
-            {reset ? "Escolha uma nova senha para sua conta." : "Receba um link de recuperação no seu email."}
+    <AuthLayout
+      title={reset ? "Definir nova senha" : "Recuperar sua senha"}
+      description={reset ? "Escolha uma nova senha para sua conta." : "Receba um link de recuperação no seu email."}
+    >
+      <form onSubmit={submit} className="space-y-5">
+        {error && (
+          <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+            {error}
           </p>
-        </div>
-        <form onSubmit={submit} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
-          {error && (
-            <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
-              {error}
-            </p>
-          )}
-          {success ? (
-            <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-800">
-              {reset
-                ? "Senha atualizada. Você já pode entrar com a nova senha."
-                : "Se houver uma conta com este email, você receberá um link de recuperação. Confira também a pasta de spam."}
-            </div>
-          ) : (
-            <>
-              {reset ? (
-                <>
-                  <div>
-                    <label htmlFor="nova-senha" className="mb-1 block text-sm font-medium text-zinc-700">
-                      Nova senha
-                    </label>
-                    <input
-                      id="nova-senha"
-                      type="password"
-                      required
-                      minLength={6}
-                      maxLength={1024}
-                      autoComplete="new-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      aria-describedby="ajuda-senha"
-                      className="min-h-11 w-full rounded-lg border border-zinc-500 px-3 text-base sm:text-sm"
-                    />
-                    <p id="ajuda-senha" className="mt-1 text-xs text-zinc-600">
-                      Use pelo menos 6 caracteres.
-                    </p>
-                  </div>
-                  <div>
-                    <label htmlFor="confirmar-senha" className="mb-1 block text-sm font-medium text-zinc-700">
-                      Confirmar nova senha
-                    </label>
-                    <input
-                      id="confirmar-senha"
-                      type="password"
-                      required
-                      minLength={6}
-                      maxLength={1024}
-                      autoComplete="new-password"
-                      value={confirmation}
-                      onChange={(e) => setConfirmation(e.target.value)}
-                      className="min-h-11 w-full rounded-lg border border-zinc-500 px-3 text-base sm:text-sm"
-                    />
-                  </div>
-                </>
-              ) : (
+        )}
+        {success ? (
+          <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-800">
+            {reset
+              ? "Senha atualizada. Você já pode entrar com a nova senha."
+              : "Se houver uma conta com este email, você receberá um link de recuperação. Confira também a pasta de spam."}
+          </div>
+        ) : (
+          <>
+            {reset ? (
+              <>
                 <div>
-                  <label htmlFor="email-recuperacao" className="mb-1 block text-sm font-medium text-zinc-700">
-                    Email
+                  <label htmlFor="nova-senha" className="mb-1 block text-sm font-medium text-zinc-700">
+                    Nova senha
                   </label>
                   <input
-                    id="email-recuperacao"
-                    type="email"
+                    id="nova-senha"
+                    type="password"
                     required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    minLength={6}
+                    maxLength={1024}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-describedby="ajuda-senha"
+                    className="min-h-11 w-full rounded-lg border border-zinc-500 px-3 text-base sm:text-sm"
+                  />
+                  <p id="ajuda-senha" className="mt-1 text-xs text-zinc-600">
+                    Use pelo menos 6 caracteres.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="confirmar-senha" className="mb-1 block text-sm font-medium text-zinc-700">
+                    Confirmar nova senha
+                  </label>
+                  <input
+                    id="confirmar-senha"
+                    type="password"
+                    required
+                    minLength={6}
+                    maxLength={1024}
+                    autoComplete="new-password"
+                    value={confirmation}
+                    onChange={(e) => setConfirmation(e.target.value)}
                     className="min-h-11 w-full rounded-lg border border-zinc-500 px-3 text-base sm:text-sm"
                   />
                 </div>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="min-h-11 w-full rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
-              >
-                {loading ? "Enviando…" : reset ? "Salvar nova senha" : "Enviar link de recuperação"}
-              </button>
-            </>
-          )}
-          {reset && !success && (
-            <Link
-              href="/recuperar-senha"
-              className="inline-flex min-h-11 items-center text-sm font-medium text-blue-700 hover:underline"
+              </>
+            ) : (
+              <div>
+                <label htmlFor="email-recuperacao" className="mb-1 block text-sm font-medium text-zinc-700">
+                  Email
+                </label>
+                <input
+                  id="email-recuperacao"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="min-h-11 w-full rounded-lg border border-zinc-500 px-3 text-base sm:text-sm"
+                />
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="min-h-11 w-full rounded-lg bg-ink px-4 text-sm font-semibold text-white hover:bg-ink-hover disabled:opacity-50"
             >
-              Solicitar novo link
-            </Link>
-          )}
+              {loading ? "Enviando…" : reset ? "Salvar nova senha" : "Enviar link de recuperação"}
+            </button>
+          </>
+        )}
+        {reset && !success && (
           <Link
-            href="/login"
-            className="inline-flex min-h-11 w-full items-center justify-center text-sm font-medium text-blue-700 hover:underline"
+            href="/recuperar-senha"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-blue-700 hover:underline"
           >
-            Voltar para o login
+            Solicitar novo link
           </Link>
-        </form>
-      </div>
-    </div>
+        )}
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 w-full items-center justify-center text-sm font-medium text-blue-700 hover:underline"
+        >
+          Voltar para o login
+        </Link>
+      </form>
+    </AuthLayout>
   )
 }

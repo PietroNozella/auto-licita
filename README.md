@@ -51,6 +51,16 @@ email da service account.
 
 Aplique as migrations de `supabase/migrations/` em ordem: 001, 002, 003, 004 e 005 (a 005 remove a tabela `notificacoes`, que não é usada pelo aplicativo).
 
+Depois aplique `20261023205756_status_verificacao_monitoramentos.sql` antes de
+publicar esta versão. Ela adiciona o estado da última verificação automática,
+exibido quando a consulta fica incompleta ou falha. “Verificar hoje” consulta
+somente o dia atual e não altera o estado da verificação automática da semana.
+Verificações antigas ficam com estado desconhecido até a próxima execução do cron.
+
+O histórico de cada monitoramento carrega 100 publicações por vez. Use
+**Carregar mais publicações** para acessar as anteriores; as contagens incluem
+todo o histórico.
+
 ## Scripts
 
 ```bash

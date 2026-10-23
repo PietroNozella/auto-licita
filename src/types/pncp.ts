@@ -100,6 +100,7 @@ export interface Monitoramento {
   cnpj_orgao: string | null
   ativo: boolean
   ultima_verificacao: string | null
+  status_verificacao_automatica: "completa" | "incompleta" | "erro" | null
   created_at: string
 }
 

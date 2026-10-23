@@ -148,12 +148,15 @@ test("duplicatas continuam sendo ignoradas e outros erros são propagados", asyn
 test("cron mantém só o monitor concluído como verificado e informa os restantes", async () => {
   const controller = new AbortController()
   const atualizados = []
+  const statusSalvos = []
   const sinaisBanco = []
   let consultas = 0
   const banco = bancoSimulado(async (url, options) => {
     sinaisBanco.push(options.signal)
     if (options.method === "PATCH") {
-      atualizados.push(new URL(url).searchParams.get("id"))
+      const body = JSON.parse(options.body)
+      statusSalvos.push(body.status_verificacao_automatica)
+      if (body.ultima_verificacao) atualizados.push(new URL(url).searchParams.get("id"))
       return new Response(null, { status: 204 })
     }
     const ordem = new URL(url).searchParams.get("order")
@@ -173,7 +176,7 @@ test("cron mantém só o monitor concluído como verificado e informa os restant
     "@/lib/supabase": { getSupabaseAdmin: () => banco },
     "@/lib/monitor-check": carregarMonitor(pncp),
   }, {
-    AbortSignal: { timeout: () => controller.signal },
+    AbortSignal: { timeout: (ms) => ms === 3_000 ? AbortSignal.timeout(ms) : controller.signal },
     process: { env: { CRON_SECRET: "teste" } },
   })
   const response = await cron.GET(new Request("https://teste/api/cron/verificar", {
@@ -183,12 +186,52 @@ test("cron mantém só o monitor concluído como verificado e informa os restant
   assert.equal(response.status, 200)
   assert.equal(consultas, 2)
   assert.deepEqual(atualizados, ["eq.primeiro"])
-  assert.ok(sinaisBanco.every((signal) => signal === controller.signal))
+  assert.ok(sinaisBanco.slice(0, -1).every((signal) => signal === controller.signal))
+  assert.notEqual(sinaisBanco.at(-1), controller.signal)
+  assert.deepEqual(statusSalvos, ["completa", "erro"])
   assert.equal(body.monitoramentosProcessados, 2)
   assert.equal(body.monitoramentosPendentes, 1)
   assert.equal(body.falhas, 1)
   assert.match(body.message, /interrompida/)
 })
+
+for (const resultado of [
+  { truncado: true, parcial: false },
+  { truncado: false, parcial: true },
+  { truncado: false, parcial: false },
+]) {
+  test(`cron persiste completude (truncado=${resultado.truncado}, parcial=${resultado.parcial})`, async () => {
+    const atualizacoes = []
+    const banco = bancoSimulado(async (_, options) => {
+      if (options.method === "PATCH") {
+        atualizacoes.push(JSON.parse(options.body))
+        return new Response(null, { status: 204 })
+      }
+      return Response.json([monitores[0]])
+    })
+    const cron = carregarModulo("src/app/api/cron/verificar/route.ts", {
+      "next/server": { NextResponse: Response },
+      "@/lib/supabase": { getSupabaseAdmin: () => banco },
+      "@/lib/monitor-check": {
+        hojeYyyymmdd: () => "20261023",
+        yyyymmddDiasAtras: () => "20261016",
+        buscarNovosDoMonitor: async () => ({ itens: [], ...resultado }),
+        persistirResultados: async () => [],
+      },
+    }, { process: { env: { CRON_SECRET: "teste" } } })
+    const response = await cron.GET(new Request("https://teste/api/cron/verificar", {
+      headers: { authorization: "Bearer teste" },
+    }))
+    const body = await response.json()
+    assert.equal(response.status, 200)
+    assert.equal(atualizacoes.length, 1)
+    assert.equal(atualizacoes[0].status_verificacao_automatica,
+      resultado.truncado || resultado.parcial ? "incompleta" : "completa")
+    assert.ok(atualizacoes[0].ultima_verificacao)
+    assert.equal(body.truncados, Number(resultado.truncado))
+    assert.equal(body.parciais, Number(resultado.parcial))
+  })
+}
 
 test("verificação manual retorna 504 e não atualiza a data se a gravação excede o prazo", async () => {
   const controller = new AbortController()

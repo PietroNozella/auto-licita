@@ -70,13 +70,13 @@ function rotaResultados(falhar = false) {
 }
 
 test("falha no banco de publicações retorna erro em vez de histórico vazio", async () => {
-  const response = await rotaResultados(true).GET()
+  const response = await rotaResultados(true).GET(new Request("https://teste/api/monitor/resultados"))
   assert.equal(response.status, 500)
   assert.ok((await response.json()).error)
 })
 
 test("contagens incluem histórico além dos resultados exibidos", async () => {
-  const response = await rotaResultados().GET()
+  const response = await rotaResultados().GET(new Request("https://teste/api/monitor/resultados"))
   const data = await response.json()
   assert.equal(response.status, 200)
   assert.equal(data.naoLidas["monitor-1"], 101)
